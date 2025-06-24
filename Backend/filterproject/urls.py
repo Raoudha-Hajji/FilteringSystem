@@ -20,6 +20,7 @@ from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('scraper/', include('scraper.urls')),  
+    path('scraper/', include('scraper.urls')), 
+    path('sorter/', include('sorter.urls')),  
     path('', lambda request: HttpResponse("Welcome to the Filter Project Dashboard!")),  # Root path
 ]
