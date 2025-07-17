@@ -1,18 +1,22 @@
 import sqlite3
 
-# Connect to the running app's database
-conn = sqlite3.connect("db.sqlite3")  # Make sure path is correct
-cursor = conn.cursor()
+def drop_duplicates():
+    conn = sqlite3.connect("db.sqlite3")
+    cursor = conn.cursor()
 
-# Create a new table (if it doesn't already exist)
-cursor.execute('ALTER TABLE training_data RENAME COLUMN "Client" TO client')
-cursor.execute('ALTER TABLE training_data RENAME COLUMN "N° Consultation" TO consultation_id')
-cursor.execute('ALTER TABLE training_data RENAME COLUMN "Intitulé du projet" TO intitule_projet')
-cursor.execute('ALTER TABLE training_data RENAME COLUMN "Lien" TO lien')
+    # Delete duplicates keeping the row with the smallest rowid per consultation_id
+    cursor.execute("""
+    DELETE FROM merged_filtered
+    WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM merged_filtered
+        GROUP BY consultation_id
+    )
+    """)
 
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("Duplicates dropped based on consultation_id.")
 
-# Commit and close
-conn.commit()
-conn.close()
-
-print(" Creation or Modification done successfully.")
+drop_duplicates()

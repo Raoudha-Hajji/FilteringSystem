@@ -1,4 +1,4 @@
-import sqlite3
+import mysql.connector
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,7 +10,7 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 import time
 from datetime import datetime
 import os
-from sorter.filter import filter_csv
+from sorter.filter import filter_project
 import traceback
 import logging
 
@@ -48,7 +48,7 @@ def run_web_scraper():
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.mat-table")))
 
             page_num = 0
-            while page_num < 50:
+            while page_num < 10:
                 page_num += 1
                 print(f"Scraping page {page_num} from {url}...")
                 WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.mat-row")))
@@ -97,15 +97,17 @@ def run_web_scraper():
         df = pd.DataFrame(filtered_rows, columns=headers)
         df.drop_duplicates(subset=['N° consultation'], inplace=True)
 
-                    #create the table and add to it 
-        db_path = os.path.join(os.path.dirname(__file__),"..", "db.sqlite3")
-        conn = sqlite3.connect(db_path, timeout=30)
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="admin",
+            database="filter_db"
+        )
         cursor = conn.cursor()
 
-        
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS tuneps_offers (
-            consultation_id TEXT PRIMARY KEY,
+            consultation_id VARCHAR(100) PRIMARY KEY,
             client TEXT,
             date_publication TEXT,
             intitule_projet TEXT,
@@ -113,17 +115,16 @@ def run_web_scraper():
             epBidMasterId TEXT,
             info TEXT,
             lien TEXT,
-            is_filtered INTEGER DEFAULT  0
+            is_filtered TINYINT DEFAULT 0
         )
         """)
 
-                # Insert each row
         for _, row in df.iterrows():
             try:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO tuneps_offers
+                    INSERT IGNORE INTO tuneps_offers
                     (consultation_id, client, date_publication, intitule_projet, date_expiration, epBidMasterId, info, lien)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, tuple(row))
             except Exception as e:
                 print(f"Error inserting row: {e}")
@@ -131,10 +132,10 @@ def run_web_scraper():
         conn.commit()
         conn.close()
 
-        print('Data saved to db.sqlite3 (table: tuneps_offers)')
+        print('Data saved to MySQL database (table: tuneps_offers)')
         print('Total rows added: ', rows_added_total)
 
-        filter_csv("tuneps_offers")
+        filter_project("tuneps_offers")
 
     except TimeoutException as te:
         logging.error("TimeoutException occurred: %s", te)

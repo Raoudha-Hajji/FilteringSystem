@@ -1,4 +1,4 @@
-import sqlite3
+import mysql.connector
 import os
 import imaplib
 import email
@@ -6,8 +6,10 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 import re
+from sorter.filter import filter_project
 
 def run_email_scraper():
+    from sorter.filter import filter_project
     EMAIL = "ha.raoudha@gmail.com"
     PASSWORD = "myhf kkst nmty bhoj"
     IMAP_SERVER = "imap.gmail.com"
@@ -22,17 +24,21 @@ def run_email_scraper():
 
     if email_ids:
         # Set up DB connection once
-        db_path = os.path.join(os.path.dirname(__file__), '..', "db.sqlite3")
-        conn = sqlite3.connect(db_path, timeout=30)
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="admin",
+            database="filter_db"
+        )
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS tunisurf_offers(
                 date_expiration TEXT,
                 client TEXT,
-                consultation_id TEXT PRIMARY KEY,
+                consultation_id VARCHAR(100) PRIMARY KEY,
                 intitule_projet TEXT,
                 lien TEXT,
-                is_filtered INTEGER DEFAULT 0
+                is_filtered TINYINT DEFAULT 0
             )
         """)
 
@@ -92,9 +98,9 @@ def run_email_scraper():
             for _, row in df.iterrows():
                 try:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO tunisurf_offers
+                        INSERT IGNORE INTO tunisurf_offers
                         (date_expiration, client, consultation_id, intitule_projet, lien, is_filtered)
-                        VALUES (?, ?, ?, ?, ?, 0)
+                        VALUES (%s, %s, %s, %s, %s, 0)
                     """, tuple(row))
                 except Exception as e:
                     print(f"Error inserting row: {e}")
@@ -104,9 +110,13 @@ def run_email_scraper():
 
         conn.commit()
         conn.close()
-        print('All unseen matching emails processed and saved to db.sqlite3')
+        print('All unseen matching emails processed and saved to MySQL')
+
+
 
     else:
         print('No unseen emails with matching subject found.')
+
+    filter_project("tunisurf_offers")
 
     mail.logout()

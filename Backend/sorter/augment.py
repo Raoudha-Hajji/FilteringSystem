@@ -1,6 +1,7 @@
-import sqlite3
+import mysql.connector
 import re
 from transformers import MarianMTModel, MarianTokenizer
+import pandas as pd
 
 # Arabic detection
 def is_arabic(text):
@@ -9,7 +10,7 @@ def is_arabic(text):
     total_chars = len(text.strip())
     return total_chars > 0 and arabic_chars / total_chars > 0.3
 
-# Load models (only once)
+# Load translation models
 fr_ar_model_name = "Helsinki-NLP/opus-mt-fr-ar"
 fr_ar_tokenizer = MarianTokenizer.from_pretrained(fr_ar_model_name)
 fr_ar_model = MarianMTModel.from_pretrained(fr_ar_model_name)
@@ -18,7 +19,6 @@ ar_fr_model_name = "Helsinki-NLP/opus-mt-ar-fr"
 ar_fr_tokenizer = MarianTokenizer.from_pretrained(ar_fr_model_name)
 ar_fr_model = MarianMTModel.from_pretrained(ar_fr_model_name)
 
-# Translate text
 def translate_text(text, source_lang, target_lang):
     if not text or text.strip() == "":
         return ""
@@ -32,40 +32,48 @@ def translate_text(text, source_lang, target_lang):
         print(f"Translation error: {e}")
         return text
 
-# Augment DB table by inserting translated rows
-def augment_sqlite_with_translations(db_path, table_name, text_column):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+def augment_with_translations(table_name, text_column="intitule_projet"):
+    # Connect to MySQL
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor(dictionary=True)
 
-    # Get column names
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    columns = [info[1] for info in cursor.fetchall()]
-    placeholders = ','.join(['?'] * len(columns))
-    col_names = ', '.join([f'"{col}"' for col in columns])
-
-    # Read all rows
+    # Fetch all rows
     cursor.execute(f"SELECT * FROM {table_name}")
     rows = cursor.fetchall()
 
-    # Identify index of text column
-    text_idx = columns.index(text_column)
+    if not rows:
+        print("No data to translate.")
+        conn.close()
+        return
 
+    columns = list(rows[0].keys())
+    text_idx = columns.index(text_column)
+    col_names = ", ".join(f"`{col}`" for col in columns)
+    placeholders = ", ".join(["%s"] * len(columns))
+
+    inserted_count = 0
     for row in rows:
-        row = list(row)
-        original_text = str(row[text_idx])
+        original_text = str(row[text_column])
         lang = "ar" if is_arabic(original_text) else "fr"
         translated_text = translate_text(original_text, lang, "fr" if lang == "ar" else "ar")
-        translated_row = row.copy()
-        translated_row[text_idx] = translated_text
+
+        # Copy the row and replace text with translation
+        translated_row = [row[col] if col != text_column else translated_text for col in columns]
 
         try:
             cursor.execute(
-                f'INSERT INTO "{table_name}" ({col_names}) VALUES ({placeholders})',
+                f"INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})",
                 tuple(translated_row)
             )
+            inserted_count += 1
         except Exception as e:
-            print(f"Failed to insert translated row: {e}")
+            print(f"⚠️ Failed to insert translated row: {e}")
 
     conn.commit()
-    conn.close()  
-    print("Augmentation complete — new translated rows inserted.")
+    conn.close()
+    print(f"✅ Augmentation complete — {inserted_count} translated rows inserted.")

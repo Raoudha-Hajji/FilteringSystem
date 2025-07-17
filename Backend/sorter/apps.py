@@ -7,7 +7,7 @@ from django.conf import settings
 from datetime import datetime, timedelta
 import os
 from sorter.filter import train_with_sbert
-from sorter.augment import augment_sqlite_with_translations
+from sorter.augment import augment_with_translations
 
 class SorterConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'

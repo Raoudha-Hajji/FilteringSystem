@@ -5,12 +5,15 @@ from sklearn.linear_model import LogisticRegression
 import numpy as np
 import pandas as pd
 import re
-import sqlite3
+import mysql.connector
 import os
 import pickle
 from sorter.augment import translate_text
 from sorter.feedback import collect_feedback
 from django.conf import settings
+from sorter.llm_filter import bloomz_filter
+import unicodedata
+from sqlalchemy import create_engine
 
 # Load multilingual Sentence-BERT model
 sbert_model = SentenceTransformer('distiluse-base-multilingual-cased-v2')
@@ -27,25 +30,53 @@ def extract_sbert_embeddings(texts, batch_size=10):
     )
 
 def normalize_text(text):
-    text = re.sub(r"[^\u0600-\u06FFa-zA-Z0-9\s.,:/\-()]", "", text)
-    text = text.lower()
+    # Unicode normalization (NFC is usually best for NLP)
+    text = unicodedata.normalize('NFC', text)
+    
+    # Replace smart quotes with standard ones
+    text = text.replace("'", "'").replace("'", "'").replace("`", "'")
+    text = text.replace(""", '"').replace(""", '"')
+    
+    # Remove control characters and excessive whitespace
+    text = re.sub(r'\\s+', ' ', text)
+    text = text.strip()
+    
+    # Replace special characters with spaces instead of deleting them
+    special_chars = r'[^\w\s\u00C0-\u00FF\u0600-\u06FF.,:/\-()\'""]'
+    text = re.sub(special_chars, ' ', text)
+    
+    # Clean up multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip()
+    
     return text
 
 def train_with_sbert(table_name, text_column="intitule_projet", label_column="Selection"):
     collect_feedback()
 
     global classifier
-        # Connect to SQLite and load data
-    db_path="db.sqlite3"
-    conn = sqlite3.connect(db_path)
-    query = f'SELECT "{text_column}", {label_column} FROM {table_name} WHERE {text_column} IS NOT NULL'
-    data = pd.read_sql_query(query, conn)
+
+    # MySQL connection
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+
+    query = f"SELECT {text_column}, {label_column} FROM {table_name} WHERE {text_column} IS NOT NULL"
+
+    # Use SQLAlchemy for Pandas compatibility
+    engine = create_engine("mysql+mysqlconnector://root:admin@localhost/filter_db")
+    data = pd.read_sql(query, engine)
+
     conn.close()
 
+    # Check required columns
     if text_column not in data.columns or label_column not in data.columns:
         raise ValueError(f"Required columns not found in: {data.columns.tolist()}")
 
-    # Preprocess
+    # Preprocessing
     texts = data[text_column].fillna("").tolist()
     labels = data[label_column].fillna(0)
     labels = [1 if label > 0 else 0 for label in labels]
@@ -54,7 +85,7 @@ def train_with_sbert(table_name, text_column="intitule_projet", label_column="Se
     X = extract_sbert_embeddings(texts)
     y = np.array(labels)
 
-    # Train/test split
+    # Split
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Train model
@@ -64,9 +95,10 @@ def train_with_sbert(table_name, text_column="intitule_projet", label_column="Se
     model_path = os.path.join(os.path.dirname(__file__), "..", "trained_classifier.pkl")
     model_path = os.path.abspath(model_path)
     print("Saving model to:", model_path)
+
     with open(model_path, "wb") as f:
         pickle.dump(classifier, f)
-    print("it got saved and it worked")
+    print("Model saved successfully.")
 
     # Evaluation
     train_acc = classifier.score(X_train, y_train)
@@ -95,57 +127,88 @@ def predict(text):
     confidence = classifier.predict_proba(embedding)[0][1]
     return prediction, confidence
 
-def filter_csv(table_name, text_column="intitule_projet", threshold=0.6):
+def load_keywords_translated():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+    cursor.execute("SELECT keyword_fr FROM keywords")
+    rows = cursor.fetchall()
+    conn.close()
+
+    keywords_fr = [row[0] for row in rows]
+
+    # Translate each keyword from French to Arabic
+    keywords_ar = [translate_text(k, source_lang="fr", target_lang="ar") for k in keywords_fr]
+
+    # Normalize all keywords (French + Arabic)
+    normalized_keywords = []
+    for kw_fr, kw_ar in zip(keywords_fr, keywords_ar):
+        normalized_keywords.append(normalize_text(kw_fr))
+        normalized_keywords.append(normalize_text(kw_ar))
+
+    return normalized_keywords
+
+def table_exists(cursor, table_name):
+    cursor.execute("""
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_schema = 'filter_db' AND table_name = %s
+    """, (table_name,))
+    return cursor.fetchone() is not None
+
+
+def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
 
     if classifier is None:
         raise ValueError("Model not trained. Please train the model first.")
-    
-    # Prompt for logic guidance
-    prompt = """
-    Classify the following project as related to computer science, software development, or technology.
-    Do not exclude projects that may not explicitly use terms like 'coding,' 'programming,' or 'software development,'
-    but still involve tasks related to technology, digital systems, machine learning, AI, or IT infrastructure.
-    Keep in mind that projects related to coding or technical development might not always use the exact keyword.
-    Ensure that any project with a technical focus is not mistakenly labeled as unrelated.
-    """
 
-    # Define keywords for fallback
-    keywords = ['web', 'logiciel', 'plateforme', 'application', "système d\'information", "site web", "logiciel", "digital"]
-    arabic_keywords = [translate_text(k, source_lang="fr", target_lang="ar") for k in keywords]
-    normalized_keywords = [normalize_text(k) for k in keywords + arabic_keywords]
+    normalized_keywords = load_keywords_translated()
 
-    db_path="db.sqlite3"
-    conn = sqlite3.connect(db_path, timeout=30)
-    cursor = conn.cursor()
+    # Connect to MySQL
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor(dictionary=True)
+
+    # SQLAlchemy engine for to_sql
+    engine = create_engine("mysql+mysqlconnector://root:admin@localhost/filter_db")
 
     # Ensure 'is_filtered' column exists
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    columns = [col[1] for col in cursor.fetchall()]
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = %s AND table_schema = 'filter_db'
+    """, (table_name,))
+    columns = [col["COLUMN_NAME"] for col in cursor.fetchall()]
+
     if 'is_filtered' not in columns:
-        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN is_filtered INTEGER DEFAULT 0")
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN is_filtered TINYINT DEFAULT 0")
         conn.commit()
 
-    # Fetch rows where is_filtered = 0
-    df = pd.read_sql_query(f"SELECT rowid, * FROM {table_name} WHERE is_filtered = 0", conn)
+    # Fetch unfiltered rows
+    df = pd.read_sql(f"SELECT * FROM {table_name} WHERE is_filtered = 0", conn)
 
-    # Debugging: Check how many rows are in the DataFrame
     print(f"Rows to process: {len(df)}")
     if len(df) == 0:
         print("No unfiltered rows to process.")
-        return df  # No rows to filter
+        return df
 
-    # Normalize texts
     df[text_column] = df[text_column].fillna("")
     normalized_texts = [normalize_text(t) for t in df[text_column].tolist()]
     embeddings = extract_sbert_embeddings(normalized_texts)
 
-    selected_rows = []
-    rejected_rows = []
-    selected_predictions = []
-    selected_confidences = []
-    rejected_predictions = []
-    rejected_confidences = []
+    selected_rows, rejected_rows = [], []
+    selected_predictions, selected_confidences = [], []
+    rejected_predictions, rejected_confidences = [], []
+
+    BORDERLINE_LOW = 0.4
+    BORDERLINE_HIGH = 0.59
 
     for idx, text in enumerate(normalized_texts):
         try:
@@ -154,10 +217,13 @@ def filter_csv(table_name, text_column="intitule_projet", threshold=0.6):
             confidence = classifier.predict_proba(embedding)[0][1]
 
             print(f"Processing row {idx + 1}/{len(normalized_texts)}: prediction = {prediction}, confidence = {confidence}")
-
             row = df.iloc[idx]
 
-            if confidence >= threshold or any(k in text for k in normalized_keywords):
+            keyword_match = any(k in text for k in normalized_keywords)
+            is_borderline = BORDERLINE_LOW <= confidence < BORDERLINE_HIGH
+            use_llm = confidence >= threshold or keyword_match or is_borderline
+
+            if use_llm and bloomz_filter(text):
                 selected_rows.append(row)
                 selected_predictions.append(int(prediction))
                 selected_confidences.append(float(confidence))
@@ -170,49 +236,160 @@ def filter_csv(table_name, text_column="intitule_projet", threshold=0.6):
             print(f"⚠️ Error processing row {idx + 1}: {e}")
             continue
 
-    # Columns to retain
     keep_columns = ["consultation_id", "client", "intitule_projet", "lien"]
 
-        # Save selected (relevant)
+    # === Save selected rows ===
     if selected_rows:
         selected_df = pd.DataFrame(selected_rows)[keep_columns]
         selected_df["prediction"] = selected_predictions
         selected_df["confidence"] = selected_confidences
         selected_df["source"] = table_name
-        
-        # Flag the rows in the source table as filtered (only once they are processed)
-        for row in selected_rows:
-            unique_value = row["consultation_id"]
+
+        existing_ids = set()
+        if table_exists(cursor, "filtered_opp") and len(selected_df) > 0:
+            placeholders = ",".join(["%s"] * len(selected_df["consultation_id"]))
+            query = f"SELECT consultation_id FROM filtered_opp WHERE consultation_id IN ({placeholders})"
+            cursor.execute(query, tuple(selected_df["consultation_id"]))
+            existing_ids = set(row["consultation_id"] for row in cursor.fetchall())
+
+        selected_df = selected_df[~selected_df["consultation_id"].isin(existing_ids)]
+
+        for row in selected_df["consultation_id"]:
             cursor.execute(
-                f"UPDATE {table_name} SET is_filtered = 1 WHERE consultation_id = ?",
-                (unique_value,)
+                f"UPDATE {table_name} SET is_filtered = 1 WHERE consultation_id = %s",
+                (row,)
             )
         conn.commit()
 
-        selected_df.to_sql("merged_filtered", conn, if_exists="append", index=False)
-        print(f"✅ Saved {len(selected_df)}  selected rows.")
+        selected_df.to_sql("filtered_opp", engine, if_exists="append", index=False)
+        print(f"✅ Saved {len(selected_df)} selected rows.")
 
-    # Save rejected (not relevant)
+    # === Save rejected rows ===
     if rejected_rows:
         rejected_df = pd.DataFrame(rejected_rows)[keep_columns]
         rejected_df["prediction"] = rejected_predictions
         rejected_df["confidence"] = rejected_confidences
         rejected_df["source"] = table_name
 
-        for row in rejected_rows:
-            unique_value = row["consultation_id"]
+        existing_ids = set()
+        if table_exists(cursor, "rejected_opp") and len(rejected_df) > 0:
+            placeholders = ",".join(["%s"] * len(rejected_df["consultation_id"]))
+            query = f"SELECT consultation_id FROM rejected_opp WHERE consultation_id IN ({placeholders})"
+            cursor.execute(query, tuple(rejected_df["consultation_id"]))
+            existing_ids = set(row["consultation_id"] for row in cursor.fetchall())
+
+        rejected_df = rejected_df[~rejected_df["consultation_id"].isin(existing_ids)]
+
+        for row in rejected_df["consultation_id"]:
             cursor.execute(
-                f"UPDATE {table_name} SET is_filtered = 1 WHERE consultation_id = ?",
-                (unique_value,)
+                f"UPDATE {table_name} SET is_filtered = 1 WHERE consultation_id = %s",
+                (row,)
             )
         conn.commit()
 
-        rejected_df.to_sql("merged_rejected", conn, if_exists="append", index=False)
-
+        rejected_df.to_sql("rejected_opp", engine, if_exists="append", index=False)
         print(f"❌ Saved {len(rejected_df)} rejected rows.")
 
     cursor.close()
     conn.close()
+
         
-# Optional: Example training trigger
-#train_with_sbert('augmented_Opportunités.csv', text_column="Intitulé du projet", label_column="Selection")
+'''Keywords CRUD and refiltering'''
+        
+def add_keyword(keyword_fr):
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO keywords (keyword_fr) VALUES (%s)", (keyword_fr,))
+    conn.commit()
+    conn.close()
+
+def update_keyword(keyword_id, new_keyword_fr):
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE keywords SET keyword_fr = %s, last_updated = CURRENT_TIMESTAMP WHERE id = %s",
+        (new_keyword_fr, keyword_id)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_keyword(keyword_id):
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM keywords WHERE id = %s", (keyword_id,))
+    conn.commit()
+    conn.close()
+
+def get_source_tables():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+
+    # Get all table names
+    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'filter_db'")
+    all_tables = [row[0] for row in cursor.fetchall()]
+
+    source_tables = []
+    for table in all_tables:
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = %s AND table_schema = 'filter_db'
+        """, (table,))
+        columns = [col[0] for col in cursor.fetchall()]
+        if ("consultation_id" in columns) and ("Selection" not in columns) and ("source" not in columns):
+            source_tables.append(table)
+
+    cursor.close()
+    conn.close()
+    return source_tables
+
+def re_filter():
+    tables = get_source_tables()
+    normalized_keywords = load_keywords_translated()
+
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="admin",
+        database="filter_db"
+    )
+    cursor = conn.cursor()
+
+    for table in tables:
+        like_clauses = [f"intitule_projet LIKE '%{kw}%'" for kw in normalized_keywords]
+        where_clause = " OR ".join(like_clauses)
+
+        sql_update = f"""
+        UPDATE {table}
+        SET is_filtered = 0
+        WHERE is_filtered = 1 AND ({where_clause})
+        """
+        cursor.execute(sql_update)
+        updated_count = cursor.rowcount
+        print(f"Reset {updated_count} rows in table {table}")
+
+        conn.commit()
+
+        filter_project(table_name=table)
+
+    cursor.close()
+    conn.close()
