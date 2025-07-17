@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+
+# Django
+*.log
+db.sqlite3
+Backend/db.sqlite3
+Backend/scraper/db.sqlite3
+Backend/sorter/db.sqlite3
+media/
+staticfiles/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Node
+node_modules/
+Frontend/node_modules/
+
+# npm logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React build
+Frontend/build/
+
+# Environment variables
+.env
+.env.*
+Backend/.env
+Frontend/.env
+
+# Test coverage
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# Misc
+*.bak
+*.swp
+*.swo
+*.tmp
+*.orig
+
+# Data exports
+*.csv
+*.json
+!data.json 
