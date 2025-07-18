@@ -6,6 +6,12 @@ __pycache__/
 *.pyc
 *.pdb
 *.egg-info/
+*.lock
+
+# Model files (optional - uncomment to ignore downloaded models)
+ models/
+ *.bin
+ *.safetensors
 
 # Django
 *.log
@@ -22,7 +28,7 @@ venv/
 ENV/
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
 # VSCode
 .vscode/
@@ -34,17 +40,15 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# Node
+# Node / React
 node_modules/
 Frontend/node_modules/
+Frontend/build/
 
-# npm logs
+# npm / yarn logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# React build
-Frontend/build/
 
 # Environment variables
 .env
@@ -52,13 +56,13 @@ Frontend/build/
 Backend/.env
 Frontend/.env
 
-# Test coverage
+# Test coverage & tox
 htmlcov/
 .coverage
 .tox/
 .nox/
 
-# Misc
+# Miscellaneous
 *.bak
 *.swp
 *.swo
@@ -68,4 +72,4 @@ htmlcov/
 # Data exports
 *.csv
 *.json
-!data.json 
+!data.json

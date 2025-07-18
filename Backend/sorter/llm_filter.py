@@ -5,8 +5,11 @@ from sorter.augment import translate_text
 
 # Load model and tokenizer
 model_name = "bigscience/bloomz-1b7"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
+local_dir = "./models/bloomz-1b7"  # relative path inside your project
+
+# This will download and save the model and tokenizer to local_dir
+tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=local_dir)
+model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir=local_dir)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
