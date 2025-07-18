@@ -1,0 +1,74 @@
+.login-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: url('./background.png') center center/cover no-repeat, #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 40px 32px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.login-logo {
+  width: 200px;
+  margin-bottom: 24px;
+  display: block;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-input {
+  width: 100%;
+  max-width: 260px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #f8fafc;
+  transition: border 0.2s;
+}
+.login-input:focus {
+  border: 1.5px solid #1976d2;
+  outline: none;
+}
+
+.login-button {
+  width: 100%;
+  max-width: 260px;
+  padding: 10px 0;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.login-button:hover {
+  background: #1565c0;
+}
+
+.login-error {
+  color: #d32f2f;
+  margin-bottom: 12px;
+  font-size: 0.98rem;
+  text-align: center;
+} 
