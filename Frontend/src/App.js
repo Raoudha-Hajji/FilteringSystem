@@ -60,7 +60,7 @@ function App() {
   const WelcomeScreen = () => (
     <div className="welcome-screen">
       <img src="/Progress_Eng.png" alt="Progress Engineering" className="welcome-logo" />
-      <h1 className="welcome-text">Bienvenu</h1>
+      <h1 className="welcome-text">Bienvenue</h1>
     </div>
   );
 
