@@ -11,7 +11,7 @@ import pickle
 from sorter.augment import translate_text
 from sorter.feedback import collect_feedback
 from django.conf import settings
-from sorter.llm_filter import bloomz_filter
+from sorter.llm_filter import mistral_filter
 import unicodedata
 from sqlalchemy import create_engine
 
@@ -223,7 +223,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
             is_borderline = BORDERLINE_LOW <= confidence < BORDERLINE_HIGH
             use_llm = confidence >= threshold or keyword_match or is_borderline
 
-            if use_llm and bloomz_filter(text):
+            if use_llm and mistral_filter(text):
                 selected_rows.append(row)
                 selected_predictions.append(int(prediction))
                 selected_confidences.append(float(confidence))
@@ -393,3 +393,27 @@ def re_filter():
 
     cursor.close()
     conn.close()
+
+def build_prompt(text):
+    prompt = f"""
+You are an expert in classifying project descriptions.
+
+Your task: Decide if the following project is related to Information Technology (IT) and is focused on software, digital platforms, or IT services. 
+- Accept only if the project is about software, digital solutions, IT services, or online platforms.
+- Reject any project that is mainly about hardware, equipment, physical devices, or includes significant hardware purchases, even if software is also mentioned.
+- Reject all non-IT projects (e.g., construction, roads, lighting, vehicles, cleaning, physical infrastructure, public works, etc.).
+
+Examples:
+- "website development" → yes
+- "digital platform for e-learning" → yes
+- "purchase of computers and printers" → no
+- "building construction" → no
+- "expanding public lighting network" → no
+- "road works" → no
+
+Reply with only "yes" if the project is IT-related and not focused on hardware. Reply with only "no" for hardware-focused or non-IT projects. Do not explain your answer.
+
+Project title: {text}
+Answer:
+"""
+    return prompt

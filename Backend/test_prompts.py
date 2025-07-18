@@ -1,4 +1,4 @@
-from sorter.llm_filter import bloomz_filter
+from sorter.llm_filter import mistral_filter
 
 # Test examples
 example1 = "REFONTE, CONCEPTION ET MAINTENANCE ÉVOLUTIVE DU SITE WEB DE L'ANME"
@@ -10,28 +10,28 @@ print("=" * 80)
 print("TESTING EXAMPLE 1 (French):")
 print(f"Text: {example1}")
 print("-" * 40)
-result1 = bloomz_filter(example1)
+result1 = mistral_filter(example1)
 print(f"Result: {result1}")
 print("=" * 80)
 
 print("\nTESTING EXAMPLE 1 (Arabic):")
 print(f"Text: {example1_ar}")
 print("-" * 40)
-result1_ar = bloomz_filter(example1_ar)
+result1_ar = mistral_filter(example1_ar)
 print(f"Result: {result1_ar}")
 print("=" * 80)
 
 print("\nTESTING EXAMPLE 2 (French):")
 print(f"Text: {example2}")
 print("-" * 40)
-result2 = bloomz_filter(example2)
+result2 = mistral_filter(example2)
 print(f"Result: {result2}")
 print("=" * 80)
 
 print("\nTESTING EXAMPLE 2 (Arabic):")
 print(f"Text: {example2_ar}")
 print("-" * 40)
-result2_ar = bloomz_filter(example2_ar)
+result2_ar = mistral_filter(example2_ar)
 print(f"Result: {result2_ar}")
 print("=" * 80)
 

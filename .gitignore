@@ -70,6 +70,6 @@ htmlcov/
 *.orig
 
 # Data exports
-*.csv
+#*.csv
 *.json
 !data.json
