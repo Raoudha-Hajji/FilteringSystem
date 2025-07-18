@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from llm_filter import bloomz_filter, build_prompt
+from llm_filter import mistral_filter, build_prompt
 
 def test_example():
     # Test the specific example
@@ -27,7 +27,7 @@ def test_example():
     print("-" * 30)
     
     # Test the LLM
-    result = bloomz_filter(test_text)
+    result = mistral_filter(test_text)
     
     print("-" * 60)
     print(f"Final result: {result}")
