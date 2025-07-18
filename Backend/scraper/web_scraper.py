@@ -48,7 +48,7 @@ def run_web_scraper():
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.mat-table")))
 
             page_num = 0
-            while page_num < 10:
+            while page_num < 50:
                 page_num += 1
                 print(f"Scraping page {page_num} from {url}...")
                 WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.mat-row")))
