@@ -34,12 +34,8 @@ def translate_text(text, source_lang, target_lang):
 
 def augment_with_translations(table_name, text_column="intitule_projet"):
     # Connect to MySQL
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection
+    conn = get_mysql_connection()
     cursor = conn.cursor(dictionary=True)
 
     # Fetch all rows

@@ -17,12 +17,8 @@ def collect_feedback(filtered_table="filtered_opp", rejected_table="rejected_opp
     print(f"Starting feedback collection process...")
 
     # Connect to MySQL
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection, get_sqlalchemy_engine
+    conn = get_mysql_connection()
     cursor = conn.cursor()
 
     if not table_exists(cursor, filtered_table) or not table_exists(cursor, rejected_table):
@@ -31,7 +27,7 @@ def collect_feedback(filtered_table="filtered_opp", rejected_table="rejected_opp
         return
 
     # Set up engine for pandas
-    engine = create_engine("mysql+mysqlconnector://root:admin@localhost/filter_db")
+    engine = get_sqlalchemy_engine()
 
     # Query from filtered (positive examples)
     filtered_query = f"""

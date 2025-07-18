@@ -24,12 +24,8 @@ def run_email_scraper():
 
     if email_ids:
         # Set up DB connection once
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="admin",
-            database="filter_db"
-        )
+        from filterproject.db_utils import get_mysql_connection
+        conn = get_mysql_connection()
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS tunisurf_offers(
