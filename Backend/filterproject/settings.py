@@ -90,6 +90,18 @@ DATABASES = {
     }
 }
 
+# MySQL Connection Configuration for direct mysql.connector usage
+MYSQL_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'admin',
+    'database': 'filter_db',
+    'port': 3306
+}
+
+# SQLAlchemy connection string
+SQLALCHEMY_DATABASE_URL = f"mysql+mysqlconnector://{MYSQL_CONFIG['user']}:{MYSQL_CONFIG['password']}@{MYSQL_CONFIG['host']}/{MYSQL_CONFIG['database']}"
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

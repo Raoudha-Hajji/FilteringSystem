@@ -97,12 +97,8 @@ def run_web_scraper():
         df = pd.DataFrame(filtered_rows, columns=headers)
         df.drop_duplicates(subset=['N° consultation'], inplace=True)
 
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="admin",
-            database="filter_db"
-        )
+        from filterproject.db_utils import get_mysql_connection
+        conn = get_mysql_connection()
         cursor = conn.cursor()
 
         cursor.execute("""

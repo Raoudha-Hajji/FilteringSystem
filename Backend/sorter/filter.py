@@ -57,17 +57,13 @@ def train_with_sbert(table_name, text_column="intitule_projet", label_column="Se
     global classifier
 
     # MySQL connection
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection, get_sqlalchemy_engine
+    conn = get_mysql_connection()
 
     query = f"SELECT {text_column}, {label_column} FROM {table_name} WHERE {text_column} IS NOT NULL"
 
     # Use SQLAlchemy for Pandas compatibility
-    engine = create_engine("mysql+mysqlconnector://root:admin@localhost/filter_db")
+    engine = get_sqlalchemy_engine()
     data = pd.read_sql(query, engine)
 
     conn.close()
@@ -128,12 +124,8 @@ def predict(text):
     return prediction, confidence
 
 def load_keywords_translated():
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection
+    conn = get_mysql_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT keyword_fr FROM keywords")
     rows = cursor.fetchall()
@@ -169,16 +161,12 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     normalized_keywords = load_keywords_translated()
 
     # Connect to MySQL
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection, get_sqlalchemy_engine
+    conn = get_mysql_connection()
     cursor = conn.cursor(dictionary=True)
 
     # SQLAlchemy engine for to_sql
-    engine = create_engine("mysql+mysqlconnector://root:admin@localhost/filter_db")
+    engine = get_sqlalchemy_engine()
 
     # Ensure 'is_filtered' column exists
     cursor.execute("""

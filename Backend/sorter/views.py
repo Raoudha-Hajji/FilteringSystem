@@ -20,12 +20,8 @@ class IsSuperUser(BasePermission):
 
 # MySQL connection helper
 def get_mysql_connection():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    from filterproject.db_utils import get_mysql_connection as get_db_connection
+    return get_db_connection()
 
 def get_filtered_table(request):
     conn = get_mysql_connection()
