@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : ven. 18 juil. 2025 à 23:12
+-- Généré le : dim. 20 juil. 2025 à 14:35
 -- Version du serveur : 8.0.42
 -- Version de PHP : 8.2.13
 
@@ -29,23 +29,24 @@ SET time_zone = "+00:00";
 
 DROP TABLE IF EXISTS `keywords`;
 CREATE TABLE IF NOT EXISTS `keywords` (
-  `id` int DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `keyword_fr` varchar(21) DEFAULT NULL,
-  `last_updated` varchar(19) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb3;
 
 --
 -- Déchargement des données de la table `keywords`
 --
 
 INSERT INTO `keywords` (`id`, `keyword_fr`, `last_updated`) VALUES
-(1, 'web', '2025-05-29 08:25:52'),
-(2, 'logiciel', '2025-05-29 08:26:47'),
-(3, 'plateforme', '2025-05-29 08:27:02'),
-(5, 'application', '2025-05-29 08:27:26'),
-(6, 'système d\'information', '2025-05-29 08:27:35'),
-(7, 'site web', '2025-05-29 08:27:52'),
-(8, 'digital', '2025-05-29 08:28:00');
+(1, 'web', '2025-05-29 07:25:52'),
+(2, 'logiciel', '2025-05-29 07:26:47'),
+(3, 'plateforme', '2025-05-29 07:27:02'),
+(5, 'application', '2025-05-29 07:27:26'),
+(6, 'système d\'information', '2025-05-29 07:27:35'),
+(7, 'site web', '2025-05-29 07:27:52'),
+(8, 'digital', '2025-05-29 07:28:00');
 
 -- --------------------------------------------------------
 
