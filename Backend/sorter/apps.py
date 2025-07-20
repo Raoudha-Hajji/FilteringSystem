@@ -17,10 +17,11 @@ class SorterConfig(AppConfig):
         if os.environ.get('RUN_MAIN') == 'true': 
             #train_with_sbert("training_data")
             #augment_sqlite_with_translations()
+            pass
         scheduler = BackgroundScheduler()
 
         scheduler.add_job(train_with_sbert,"interval",weeks=1,args=["training_data"],id="weekly_training_job",
                          replace_existing=True
         )
         
-        scheduler.start() 
+        scheduler.start()
