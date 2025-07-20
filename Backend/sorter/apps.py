@@ -15,12 +15,12 @@ class SorterConfig(AppConfig):
 
     def ready(self):
         if os.environ.get('RUN_MAIN') == 'true': 
-            train_with_sbert("training_data")
+            #train_with_sbert("training_data")
             #augment_sqlite_with_translations()
         scheduler = BackgroundScheduler()
 
         scheduler.add_job(train_with_sbert,"interval",weeks=1,args=["training_data"],id="weekly_training_job",
-            replace_existing=True
+                         replace_existing=True
         )
         
-        scheduler.start()
+        scheduler.start() 
