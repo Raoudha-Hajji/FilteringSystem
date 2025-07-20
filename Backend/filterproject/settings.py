@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-m52m4+m2#b=*pj%n*f11qzyi+^skcu7#b_6(pf=dy0fmpqy=^(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.25']
 
 
 # Application definition
@@ -45,13 +45,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'filterproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'filtered',
+        'NAME': 'filter_db',
         'USER': 'root',
         'PASSWORD': 'admin',
         'HOST': 'localhost',  # or your MySQL server address
@@ -95,7 +95,7 @@ MYSQL_CONFIG = {
     'host': 'localhost',
     'user': 'root',
     'password': 'admin',
-    'database': 'filtered',
+    'database': 'filter_db',
     'port': 3306
 }
 
