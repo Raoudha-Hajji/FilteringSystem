@@ -14,6 +14,7 @@ from django.conf import settings
 from sorter.llm_filter import mistral_filter
 import unicodedata
 from sqlalchemy import create_engine
+from filterproject.db_utils import table_exists, get_mysql_connection, get_database_name, get_sqlalchemy_engine
 
 # Load multilingual Sentence-BERT model
 sbert_model = SentenceTransformer('distiluse-base-multilingual-cased-v2')
@@ -57,7 +58,6 @@ def train_with_sbert(table_name, text_column="intitule_projet", label_column="Se
     global classifier
 
     # MySQL connection
-    from filterproject.db_utils import get_mysql_connection, get_sqlalchemy_engine
     conn = get_mysql_connection()
 
     query = f"SELECT {text_column}, {label_column} FROM {table_name} WHERE {text_column} IS NOT NULL"
@@ -124,7 +124,6 @@ def predict(text):
     return prediction, confidence
 
 def load_keywords_translated():
-    from filterproject.db_utils import get_mysql_connection
     conn = get_mysql_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT keyword_fr FROM keywords")
@@ -144,14 +143,6 @@ def load_keywords_translated():
 
     return normalized_keywords
 
-def table_exists(cursor, table_name):
-    cursor.execute("""
-        SELECT table_name FROM information_schema.tables 
-        WHERE table_schema = 'filter_db' AND table_name = %s
-    """, (table_name,))
-    return cursor.fetchone() is not None
-
-
 def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
 
@@ -161,7 +152,6 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     normalized_keywords = load_keywords_translated()
 
     # Connect to MySQL
-    from filterproject.db_utils import get_mysql_connection, get_sqlalchemy_engine
     conn = get_mysql_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -285,24 +275,14 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
 '''Keywords CRUD and refiltering'''
         
 def add_keyword(keyword_fr):
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    conn = get_mysql_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO keywords (keyword_fr) VALUES (%s)", (keyword_fr,))
     conn.commit()
     conn.close()
 
 def update_keyword(keyword_id, new_keyword_fr):
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    conn = get_mysql_connection()
     cursor = conn.cursor()
     cursor.execute(
         "UPDATE keywords SET keyword_fr = %s, last_updated = CURRENT_TIMESTAMP WHERE id = %s",
@@ -312,40 +292,28 @@ def update_keyword(keyword_id, new_keyword_fr):
     conn.close()
 
 def delete_keyword(keyword_id):
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    conn = get_mysql_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM keywords WHERE id = %s", (keyword_id,))
     conn.commit()
     conn.close()
 
 def get_source_tables():
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    conn = get_mysql_connection()
     cursor = conn.cursor()
-
+    db_name = get_database_name()
     # Get all table names
-    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'filter_db'")
+    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = %s", (db_name,))
     all_tables = [row[0] for row in cursor.fetchall()]
-
     source_tables = []
     for table in all_tables:
         cursor.execute("""
             SELECT column_name FROM information_schema.columns 
-            WHERE table_name = %s AND table_schema = 'filter_db'
-        """, (table,))
+            WHERE table_name = %s AND table_schema = %s
+        """, (table, db_name))
         columns = [col[0] for col in cursor.fetchall()]
         if ("consultation_id" in columns) and ("Selection" not in columns) and ("source" not in columns):
             source_tables.append(table)
-
     cursor.close()
     conn.close()
     return source_tables
@@ -353,17 +321,10 @@ def get_source_tables():
 def re_filter():
     tables = get_source_tables()
     normalized_keywords = load_keywords_translated()
-
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="admin",
-        database="filter_db"
-    )
+    conn = get_mysql_connection()
     cursor = conn.cursor()
-
     for table in tables:
-        like_clauses = [f"intitule_projet LIKE '%{kw}%'" for kw in normalized_keywords]
+        like_clauses = [f"intitule_projet LIKE '%{{kw}}%'" for kw in normalized_keywords]
         where_clause = " OR ".join(like_clauses)
 
         sql_update = f"""

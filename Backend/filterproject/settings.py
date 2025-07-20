@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'filterproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'filter_db',
+        'NAME': 'filtered',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',  # or your MySQL server address
@@ -95,7 +95,7 @@ MYSQL_CONFIG = {
     'host': 'localhost',
     'user': 'root',
     'password': 'admin',
-    'database': 'filter_db',
+    'database': 'filtered',
     'port': 3306
 }
 

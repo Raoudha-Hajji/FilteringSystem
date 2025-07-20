@@ -3,13 +3,7 @@ from sqlalchemy import create_engine
 import pandas as pd
 from sorter.augment import augment_with_translations  
 import random
-
-def table_exists(cursor, table_name):
-    cursor.execute("""
-        SELECT table_name FROM information_schema.tables 
-        WHERE table_schema = 'filter_db' AND table_name = %s
-    """, (table_name,))
-    return cursor.fetchone() is not None
+from filterproject.db_utils import table_exists
 
 def collect_feedback(filtered_table="filtered_opp", rejected_table="rejected_opp", 
                      target_table="training_data", feedback_limit=10):
