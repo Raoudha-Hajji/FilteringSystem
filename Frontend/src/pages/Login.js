@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import "./Login.css";
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 function Login({ setUser }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -11,7 +13,7 @@ function Login({ setUser }) {
     e.preventDefault();
     setError("");
     try {
-      const res = await axios.post("http://localhost:8000/api/token/", {
+      const res = await axios.post(`${API_BASE}/api/token/`, {
         username,
         password,
       });
@@ -19,7 +21,7 @@ function Login({ setUser }) {
       localStorage.setItem("refresh", res.data.refresh);
 
       // Fetch user info
-      const userRes = await axios.get("http://localhost:8000/api/user/", {
+      const userRes = await axios.get(`${API_BASE}/api/user/`, {
         headers: { Authorization: `Bearer ${res.data.access}` },
       });
       setUser(userRes.data);

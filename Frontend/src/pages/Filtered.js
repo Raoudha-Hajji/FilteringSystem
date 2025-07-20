@@ -3,6 +3,8 @@ import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 function Filtered({ user }) {
   const [data, setData] = useState(null);
   const [prevCount, setPrevCount] = useState(0);
@@ -30,7 +32,7 @@ function Filtered({ user }) {
 
   // Fetch filtered data
   const fetchFilteredData = () => {
-    axios.get('http://localhost:8000/sorter/api/filtered_data/')
+    axios.get(`${API_BASE}/sorter/api/filtered_data/`)
       .then(res => {
         const newData = res.data;
         const newIdsSet = new Set(newData.map(row => row.consultation_id));
@@ -59,7 +61,7 @@ function Filtered({ user }) {
   // Fetch keywords
   const fetchKeywords = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/sorter/api/keywords/', {
+      const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
         headers: access ? { Authorization: `Bearer ${access}` } : {},
       });
       setKeywords(res.data);
@@ -83,7 +85,7 @@ function Filtered({ user }) {
   const handleAddKeyword = async () => {
     if (!newKeyword.trim()) return;
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.post('http://localhost:8000/sorter/api/keywords/',
+    await axios.post(`${API_BASE}/sorter/api/keywords/`,
       { keyword_fr: newKeyword },
       { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` } }
     );
@@ -94,7 +96,7 @@ function Filtered({ user }) {
 
   const handleDeleteKeyword = async (id) => {
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.delete(`http://localhost:8000/sorter/api/keywords/${id}/`, {
+    await axios.delete(`${API_BASE}/sorter/api/keywords/${id}/`, {
       headers: { Authorization: `Bearer ${access}` },
     });
     fetchKeywords();
@@ -102,7 +104,7 @@ function Filtered({ user }) {
 
   const handleReFilter = async () => {
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.post('http://localhost:8000/sorter/api/refilter/', {}, {
+    await axios.post(`${API_BASE}/sorter/api/refilter/`, {}, {
       headers: { Authorization: `Bearer ${access}` },
     });
     fetchFilteredData();

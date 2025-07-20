@@ -3,6 +3,8 @@ import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 function Rejected({ user }) {
   const [data, setData] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,7 +25,7 @@ function Rejected({ user }) {
 
   // Fetch rejected data
   const fetchRejectedData = () => {
-    axios.get('http://localhost:8000/sorter/api/rejected_data/')
+    axios.get(`${API_BASE}/sorter/api/rejected_data/`)
       .then(res => setData(res.data))
       .catch(err => {
         console.error('Error fetching data:', err);
@@ -34,7 +36,7 @@ function Rejected({ user }) {
   // Fetch keywords
   const fetchKeywords = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/sorter/api/keywords/', {
+      const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
         headers: access ? { Authorization: `Bearer ${access}` } : {},
       });
       setKeywords(res.data);
@@ -57,7 +59,7 @@ function Rejected({ user }) {
   const handleAddKeyword = async () => {
     if (!newKeyword.trim()) return;
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.post('http://localhost:8000/sorter/api/keywords/',
+    await axios.post(`${API_BASE}/sorter/api/keywords/`,
       { keyword_fr: newKeyword },
       { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` } }
     );
@@ -68,7 +70,7 @@ function Rejected({ user }) {
 
   const handleDeleteKeyword = async (id) => {
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.delete(`http://localhost:8000/sorter/api/keywords/${id}/`, {
+    await axios.delete(`${API_BASE}/sorter/api/keywords/${id}/`, {
       headers: { Authorization: `Bearer ${access}` },
     });
     fetchKeywords();
@@ -76,7 +78,7 @@ function Rejected({ user }) {
 
   const handleReFilter = async () => {
     if (!user || (!user.is_staff && !user.is_superuser)) return;
-    await axios.post('http://localhost:8000/sorter/api/refilter/', {}, {
+    await axios.post(`${API_BASE}/sorter/api/refilter/`, {}, {
       headers: { Authorization: `Bearer ${access}` },
     });
     fetchRejectedData();

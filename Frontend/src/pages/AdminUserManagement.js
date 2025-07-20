@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 function AdminUserManagement({ user }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ function AdminUserManagement({ user }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('http://localhost:8000/api/users/', {
+      const res = await axios.get(`${API_BASE}/api/users/`, {
         headers: { Authorization: `Bearer ${access}` },
       });
       setUsers(res.data);
@@ -41,7 +43,7 @@ function AdminUserManagement({ user }) {
     setCreating(true);
     setError('');
     try {
-      await axios.post('http://localhost:8000/api/users/create/', form, {
+      await axios.post(`${API_BASE}/api/users/create/`, form, {
         headers: { Authorization: `Bearer ${access}` },
       });
       setForm({ username: '', password: '', email: '', is_staff: false });
@@ -56,7 +58,7 @@ function AdminUserManagement({ user }) {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     setError('');
     try {
-      await axios.delete(`http://localhost:8000/api/users/${userId}/delete/`, {
+      await axios.delete(`${API_BASE}/api/users/${userId}/delete/`, {
         headers: { Authorization: `Bearer ${access}` },
       });
       fetchUsers();
