@@ -13,7 +13,7 @@ class ScraperConfig(AppConfig):
     def ready(self):
         # Avoid double-scheduler on autoreload
             if os.environ.get('RUN_MAIN') == 'true': 
-                
+                run_web_scraper()
                 # Only schedule jobs, do NOT run them immediately!
                 scheduler = BackgroundScheduler()
                 scheduler.add_job(run_web_scraper, 'interval', minutes=30, id='web_scraper_job', replace_existing=True)
