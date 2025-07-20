@@ -73,3 +73,5 @@ htmlcov/
 #*.csv
 *.json
 !data.json
+!package.json
+!package-lock.json
