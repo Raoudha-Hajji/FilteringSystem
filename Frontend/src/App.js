@@ -19,7 +19,8 @@ function App() {
   useEffect(() => {
     const access = localStorage.getItem('access');
     if (access && !user) {
-      axios.get('http://localhost:8000/api/user/', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      axios.get(`${apiUrl}/api/user/`, {
         headers: { Authorization: `Bearer ${access}` },
       })
         .then(res => setUser(res.data))
