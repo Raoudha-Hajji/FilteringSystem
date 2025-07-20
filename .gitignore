@@ -55,6 +55,7 @@ yarn-error.log*
 .env.*
 Backend/.env
 Frontend/.env
+!Frontend/.env.production
 
 # Test coverage & tox
 htmlcov/
