@@ -14,9 +14,11 @@ from sorter.filter import filter_project
 import traceback
 import logging
 
+logger = logging.getLogger("myjobs")
+
 
 def run_web_scraper():
-    print("Running Tuneps web scraper...")
+    logger.info("Running Tuneps web scraper...")
 
     options = Options()
     options.add_argument("--no-sandbox")
@@ -27,7 +29,7 @@ def run_web_scraper():
 
     try:
         driver = webdriver.Chrome(options=options)
-        driver.set_page_load_timeout(60)  
+        driver.set_page_load_timeout(60)
         driver.set_script_timeout(60)
 
         urls = [
@@ -43,14 +45,14 @@ def run_web_scraper():
         rows_added_total = 0
 
         for url in urls:
-            print(f"Scraping data from: {url}")
+            logger.info(f"Scraping data from: {url}")
             driver.get(url)
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.mat-table")))
 
             page_num = 0
             while page_num < 50:
                 page_num += 1
-                print(f"Scraping page {page_num} from {url}...")
+                logger.info(f"Scraping page {page_num} from {url}...")
                 WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.mat-row")))
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 rows = soup.select('tbody .mat-row')
@@ -85,12 +87,12 @@ def run_web_scraper():
                 try:
                     next_button = driver.find_element(By.CSS_SELECTOR, '.mat-paginator-navigation-next')
                     if "disabled" in next_button.get_attribute("class"):
-                        print(f"Reached last page on {url}.")
+                        logger.info(f"Reached last page on {url}.")
                         break
                     driver.execute_script("arguments[0].click();", next_button)
                     time.sleep(5)
                 except Exception as e:
-                    print(f"Error clicking 'next' on {url}: {e}")
+                    logger.error(f"Error clicking 'next' on {url}: {e}")
                     break
 
                     #create the dataframe
@@ -128,21 +130,22 @@ def run_web_scraper():
         conn.commit()
         conn.close()
 
-        print('Data saved to MySQL database (table: tuneps_offers)')
-        print('Total rows added: ', rows_added_total)
+        logger.info('Data saved to MySQL database (table: tuneps_offers)')
+        logger.info(f'Total rows added: {rows_added_total}')
 
         filter_project("tuneps_offers")
 
     except TimeoutException as te:
-        logging.error("TimeoutException occurred: %s", te)
+        logger.error(f"TimeoutException occurred: {te}")
     except WebDriverException as we:
-        logging.error("WebDriverException occurred: %s", we)
+        logger.error(f"WebDriverException occurred: {we}")
     except Exception as e:
-        logging.error("Unexpected error: %s", traceback.format_exc())
+        logger.error(f"Unexpected error: {traceback.format_exc()}")
     finally:
         if driver:
             try:
                 driver.quit()
             except:
                 pass
-        print("Scraping attempt finished. Waiting for next scheduled run.")
+        logger.info("Scraping attempt finished. Waiting for next scheduled run.")
+

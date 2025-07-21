@@ -7,9 +7,27 @@ import pandas as pd
 from datetime import datetime
 import re
 from sorter.filter import filter_project
+import logging
+
+logger = logging.getLogger("myjobs")
 
 def run_email_scraper():
-    from sorter.filter import filter_project
+    from filterproject.db_utils import get_mysql_connection
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    # Always create the table if it doesn't exist
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tunisurf_offers(
+            date_expiration TEXT,
+            client TEXT,
+            consultation_id VARCHAR(100) PRIMARY KEY,
+            intitule_projet TEXT,
+            lien TEXT,
+            is_filtered TINYINT DEFAULT 0
+        )
+    """)
+    conn.commit()
+
     EMAIL = "ha.raoudha@gmail.com"
     PASSWORD = "myhf kkst nmty bhoj"
     IMAP_SERVER = "imap.gmail.com"
@@ -23,21 +41,7 @@ def run_email_scraper():
     email_ids = messages[0].split()
 
     if email_ids:
-        # Set up DB connection once
-        from filterproject.db_utils import get_mysql_connection
-        conn = get_mysql_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS tunisurf_offers(
-                date_expiration TEXT,
-                client TEXT,
-                consultation_id VARCHAR(100) PRIMARY KEY,
-                intitule_projet TEXT,
-                lien TEXT,
-                is_filtered TINYINT DEFAULT 0
-            )
-        """)
-
+        # Set up DB connection once (already done above)
         for email_id in email_ids:
             status, msg_data = mail.fetch(email_id, '(RFC822)')
             raw_email = msg_data[0][1]
@@ -99,20 +103,18 @@ def run_email_scraper():
                         VALUES (%s, %s, %s, %s, %s, 0)
                     """, tuple(row))
                 except Exception as e:
-                    print(f"Error inserting row: {e}")
+                    logger.error(f"Error inserting row: {e}")
 
             # Mark email as seen
             mail.store(email_id, '+FLAGS', '\\Seen')
 
         conn.commit()
         conn.close()
-        print('All unseen matching emails processed and saved to MySQL')
-
-
+        logger.info('All unseen matching emails processed and saved to MySQL')
 
     else:
-        print('No unseen emails with matching subject found.')
+        logger.info('No unseen emails with matching subject found.')
 
     filter_project("tunisurf_offers")
-
     mail.logout()
+

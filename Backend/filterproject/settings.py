@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,7 @@ SECRET_KEY = 'django-insecure-m52m4+m2#b=*pj%n*f11qzyi+^skcu7#b_6(pf=dy0fmpqy=^(
 DEBUG = False
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.25']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.25','192.168.148.32']
 
 
 # Application definition
@@ -76,6 +77,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'filterproject.wsgi.application'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/home/filtersystem/FilteringSystem/Backend/logs/error.log',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['file', 'console'],
+        'level': 'DEBUG',
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

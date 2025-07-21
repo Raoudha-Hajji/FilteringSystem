@@ -15,6 +15,8 @@ from sorter.llm_filter import mistral_filter
 import unicodedata
 from sqlalchemy import create_engine
 from filterproject.db_utils import table_exists, get_mysql_connection, get_database_name, get_sqlalchemy_engine
+import logging
+logger = logging.getLogger("myjobs")
 
 # Load multilingual Sentence-BERT model
 sbert_model = SentenceTransformer('distiluse-base-multilingual-cased-v2')
@@ -90,19 +92,19 @@ def train_with_sbert(table_name, text_column="intitule_projet", label_column="Se
 
     model_path = os.path.join(os.path.dirname(__file__), "..", "trained_classifier.pkl")
     model_path = os.path.abspath(model_path)
-    print("Saving model to:", model_path)
+    logger.info(f"Saving model to: {model_path}")
 
     with open(model_path, "wb") as f:
         pickle.dump(classifier, f)
-    print("Model saved successfully.")
+    logger.info("Model saved successfully.")
 
     # Evaluation
     train_acc = classifier.score(X_train, y_train)
     val_acc = classifier.score(X_val, y_val)
-    print(f"Train Accuracy: {train_acc:.4f}, Validation Accuracy: {val_acc:.4f}")
+    logger.info(f"Train Accuracy: {train_acc:.4f}, Validation Accuracy: {val_acc:.4f}")
 
     y_pred = classifier.predict(X_val)
-    print(classification_report(y_val, y_pred))
+    logger.info(classification_report(y_val, y_pred))
 
     return val_acc
 
@@ -114,7 +116,7 @@ def load_classifier():
         with open(model_path, "rb") as f:
             classifier = pickle.load(f)
     else:
-        print(f"[WARNING] Model file not found at: {model_path}")
+        logger.warning(f"[WARNING] Model file not found at: {model_path}")
 
 def predict(text):
     load_classifier()
@@ -142,6 +144,28 @@ def load_keywords_translated():
         normalized_keywords.append(normalize_text(kw_ar))
 
     return normalized_keywords
+
+def ensure_filtered_opp_table_exists(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS filtered_opp (
+            consultation_id VARCHAR(100) PRIMARY KEY,
+            client TEXT,
+            intitule_projet TEXT,
+            lien TEXT,
+            is_filtered TINYINT DEFAULT 0
+        )
+    """)
+
+def ensure_rejected_opp_table_exists(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS rejected_opp (
+            consultation_id VARCHAR(100) PRIMARY KEY,
+            client TEXT,
+            intitule_projet TEXT,
+            lien TEXT,
+            is_filtered TINYINT DEFAULT 0
+        )
+    """)
 
 def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
@@ -172,9 +196,9 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     # Fetch unfiltered rows
     df = pd.read_sql(f"SELECT * FROM {table_name} WHERE is_filtered = 0", conn)
 
-    print(f"Rows to process: {len(df)}")
+    logger.info(f"Rows to process: {len(df)}")
     if len(df) == 0:
-        print("No unfiltered rows to process.")
+        logger.info("No unfiltered rows to process.")
         return df
 
     df[text_column] = df[text_column].fillna("")
@@ -194,7 +218,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
             prediction = classifier.predict(embedding)[0]
             confidence = classifier.predict_proba(embedding)[0][1]
 
-            print(f"Processing row {idx + 1}/{len(normalized_texts)}: prediction = {prediction}, confidence = {confidence}")
+            logger.info(f"Processing row {idx + 1}/{len(normalized_texts)}: prediction = {prediction}, confidence = {confidence}")
             row = df.iloc[idx]
 
             keyword_match = any(k in text for k in normalized_keywords)
@@ -211,13 +235,14 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
                 rejected_confidences.append(float(confidence))
 
         except Exception as e:
-            print(f"⚠️ Error processing row {idx + 1}: {e}")
+            logger.error(f"⚠️ Error processing row {idx + 1}: {e}")
             continue
 
     keep_columns = ["consultation_id", "client", "intitule_projet", "lien"]
 
     # === Save selected rows ===
     if selected_rows:
+        ensure_filtered_opp_table_exists(cursor)
         selected_df = pd.DataFrame(selected_rows)[keep_columns]
         selected_df["prediction"] = selected_predictions
         selected_df["confidence"] = selected_confidences
@@ -240,10 +265,11 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
         conn.commit()
 
         selected_df.to_sql("filtered_opp", engine, if_exists="append", index=False)
-        print(f"✅ Saved {len(selected_df)} selected rows.")
+        logger.info(f"✅ Saved {len(selected_df)} selected rows.")
 
     # === Save rejected rows ===
     if rejected_rows:
+        ensure_rejected_opp_table_exists(cursor)
         rejected_df = pd.DataFrame(rejected_rows)[keep_columns]
         rejected_df["prediction"] = rejected_predictions
         rejected_df["confidence"] = rejected_confidences
@@ -266,7 +292,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
         conn.commit()
 
         rejected_df.to_sql("rejected_opp", engine, if_exists="append", index=False)
-        print(f"❌ Saved {len(rejected_df)} rejected rows.")
+        logger.info(f"❌ Saved {len(rejected_df)} rejected rows.")
 
     cursor.close()
     conn.close()
@@ -334,7 +360,7 @@ def re_filter():
         """
         cursor.execute(sql_update)
         updated_count = cursor.rowcount
-        print(f"Reset {updated_count} rows in table {table}")
+        logger.info(f"Reset {updated_count} rows in table {table}")
 
         conn.commit()
 
