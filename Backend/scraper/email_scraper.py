@@ -93,7 +93,7 @@ def run_email_scraper():
                     if len(cells) >= 5:
                         date_text = cells[1].text.strip()
                         try:
-                            date = datetime.strptime(date_text, '%Y-%m-%d').date()
+                            parsed_date = datetime.strptime(date_text, '%Y-%m-%d').date()
                         except ValueError:
                             continue
 
@@ -109,7 +109,7 @@ def run_email_scraper():
                         else:
                             consultation_number = "-"
 
-                        dates.append(date)
+                        dates.append(parsed_date)
                         institutions.append(institution)
                         descriptions.append(description)
                         links.append(link)
