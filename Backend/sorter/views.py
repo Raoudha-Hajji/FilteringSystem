@@ -27,7 +27,7 @@ def get_filtered_table(request):
     conn = get_mysql_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT consultation_id, client, intitule_projet, lien, source
+        SELECT consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source
         FROM filtered_opp
         ORDER BY confidence DESC
     """)
@@ -39,7 +39,7 @@ def get_rejected_table(request):
     conn = get_mysql_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT consultation_id, client, intitule_projet, lien, source
+        SELECT consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source
         FROM rejected_opp
         ORDER BY confidence DESC
     """)
