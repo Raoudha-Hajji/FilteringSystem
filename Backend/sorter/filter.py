@@ -224,6 +224,12 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     # Fetch unfiltered rows
     df = pd.read_sql(f"SELECT * FROM {table_name} WHERE is_filtered = 0", conn)
 
+    # Ensure date columns exist for all sources
+    if "date_publication" not in df.columns:
+        df["date_publication"] = None
+    if "date_expiration" not in df.columns:
+        df["date_expiration"] = None
+
     logger.info(f"Rows to process: {len(df)}")
     if len(df) == 0:
         logger.info("No unfiltered rows to process.")

@@ -19,6 +19,7 @@ def run_email_scraper():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tunisurf_offers(
             date_expiration TEXT,
+            date_publication TEXT,
             client TEXT,
             consultation_id VARCHAR(100) PRIMARY KEY,
             intitule_projet TEXT,
@@ -46,6 +47,22 @@ def run_email_scraper():
             status, msg_data = mail.fetch(email_id, '(RFC822)')
             raw_email = msg_data[0][1]
             msg = email.message_from_bytes(raw_email)
+
+            # Get the date of the email (date_publication)
+            email_date_tuple = mail.fetch(email_id, '(BODY[HEADER.FIELDS (DATE)])')[1][0]
+            email_date_str = None
+            if email_date_tuple:
+                import email.utils, datetime
+                header = email.message_from_bytes(email_date_tuple[1])
+                email_date_str = header.get('Date')
+                if email_date_str:
+                    parsed_date = email.utils.parsedate_to_datetime(email_date_str)
+                    date_publication = parsed_date.strftime('%Y-%m-%d')
+                else:
+                    date_publication = datetime.datetime.now().strftime('%Y-%m-%d')
+            else:
+                import datetime
+                date_publication = datetime.datetime.now().strftime('%Y-%m-%d')
 
             html_content = ""
             for part in msg.walk():
@@ -87,11 +104,12 @@ def run_email_scraper():
 
             # Create and insert into database
             data = {
-                'Date Expiration': dates,
-                'Client': institutions,
-                'N° consultation': consultation_numbers,
-                'Intitulé du projet': descriptions,
-                'Lien': links
+                'date_expiration': dates,
+                'date_publication': [date_publication] * len(dates),
+                'client': institutions,
+                'consultation_id': consultation_numbers,
+                'intitule_projet': descriptions,
+                'lien': links
             }
             df = pd.DataFrame(data)
 
@@ -99,8 +117,8 @@ def run_email_scraper():
                 try:
                     cursor.execute("""
                         INSERT IGNORE INTO tunisurf_offers
-                        (date_expiration, client, consultation_id, intitule_projet, lien, is_filtered)
-                        VALUES (%s, %s, %s, %s, %s, 0)
+                        (date_expiration, date_publication, client, consultation_id, intitule_projet, lien, is_filtered)
+                        VALUES (%s, %s, %s, %s, %s, %s, 0)
                     """, tuple(row))
                 except Exception as e:
                     logger.error(f"Error inserting row: {e}")
