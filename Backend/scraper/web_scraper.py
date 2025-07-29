@@ -60,9 +60,7 @@ def run_web_scraper():
 
         filtered_rows = []
         rows_added_total = 0
-
-        
-        stop_scraping = False #Flag
+        stop_scraping = False  # flag
 
         for url in urls:
             if stop_scraping:
@@ -73,7 +71,7 @@ def run_web_scraper():
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.mat-table")))
 
             page_num = 0
-            while page_num < 50 and not stop_scraping:
+            while not stop_scraping:
                 page_num += 1
                 logger.info(f"Scraping page {page_num} from {url}...")
 
@@ -89,35 +87,40 @@ def run_web_scraper():
 
                     if len(row_data) >= 2:
                         consultation_id = row_data[0]
+                        row_date = row_data[2]
 
                         if row_exists_in_db(consultation_id):
                             logger.info(f"Duplicate found in DB (ID: {consultation_id}). Stopping scraper.")
                             stop_scraping = True
-                            break 
+                            break
 
-                        row_date = row_data[2]
-                        if row_date == today:
-                            id_number = row_data[0]
-                            epBidMasterId = row_data[-2]
+                        if row_date != today:
+                            logger.info(f"Found row dated {row_date} (not today). Stopping scraper.")
+                            stop_scraping = True
+                            break
 
-                            if "offres" in url:
-                                details_link = f"{url}/details/{epBidMasterId}/{id_number}"
-                            elif "consultations" in url:
-                                details_link = f"{url}/consultationdetails/{epBidMasterId}/{id_number}"
-                            else:
-                                details_link = "N/A"
+                        id_number = row_data[0]
+                        epBidMasterId = row_data[-2]
 
-                            row_data.append(details_link)
+                        if "offres" in url:
+                            details_link = f"{url}/details/{epBidMasterId}/{id_number}"
+                        elif "consultations" in url:
+                            details_link = f"{url}/consultationdetails/{epBidMasterId}/{id_number}"
+                        else:
+                            details_link = "N/A"
 
-                            if row_data not in filtered_rows:
-                                rows_added += 1
-                                filtered_rows.append(row_data)
+                        row_data.append(details_link)
+
+                        if row_data not in filtered_rows:
+                            rows_added += 1
+                            filtered_rows.append(row_data)
 
                 rows_added_total += rows_added
 
                 if stop_scraping:
-                    break  
+                    break 
 
+                # Try to click “Next” if it exists
                 try:
                     next_button = driver.find_element(By.CSS_SELECTOR, '.mat-paginator-navigation-next')
                     if "disabled" in next_button.get_attribute("class"):
@@ -166,7 +169,7 @@ def run_web_scraper():
         logger.info('Data saved to MySQL database (table: tuneps_offers)')
         logger.info(f'Total rows added: {rows_added_total}')
 
-        # ✅ Trigger filtering after scraping
+        
         filter_project("tuneps_offers")
 
     except TimeoutException as te:
