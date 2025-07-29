@@ -2,9 +2,10 @@ import mysql.connector
 import os
 import imaplib
 import email
+import email.utils
 from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime
+from datetime import datetime as dt
 import re
 from sorter.filter import filter_project
 import logging
@@ -59,19 +60,21 @@ def run_email_scraper():
                 msg = email.message_from_bytes(raw_email)
 
                 # Get the date of the email (date_publication)
-                email_date_tuple = mail.fetch(email_id, '(BODY[HEADER.FIELDS (DATE)])')[1][0]
-                email_date_str = None
-                if email_date_tuple:
-                    import email.utils
-                    header = email.message_from_bytes(email_date_tuple[1])
-                    email_date_str = header.get('Date')
-                    if email_date_str:
-                        email_parsed_date = email.utils.parsedate_to_datetime(email_date_str)
-                        date_publication = email_parsed_date.strftime('%Y-%m-%d')
+                try:
+                    email_date_tuple = mail.fetch(email_id, '(BODY[HEADER.FIELDS (DATE)])')[1][0]
+                    if email_date_tuple:
+                        header_msg = email.message_from_bytes(email_date_tuple[1])
+                        email_date_str = header_msg.get('Date')
+                        if email_date_str:
+                            parsed_email_date = email.utils.parsedate_to_datetime(email_date_str)
+                            date_publication = parsed_email_date.strftime('%Y-%m-%d')
+                        else:
+                            date_publication = dt.now().strftime('%Y-%m-%d')
                     else:
-                        date_publication = datetime.now().strftime('%Y-%m-%d')
-                else:
-                    date_publication = datetime.now().strftime('%Y-%m-%d')
+                        date_publication = dt.now().strftime('%Y-%m-%d')
+                except Exception as e:
+                    logger.warning(f"Error parsing email date: {e}")
+                    date_publication = dt.now().strftime('%Y-%m-%d')
 
                 html_content = ""
                 for part in msg.walk():
@@ -93,7 +96,7 @@ def run_email_scraper():
                     if len(cells) >= 5:
                         date_text = cells[1].text.strip()
                         try:
-                            parsed_date = datetime.strptime(date_text, '%Y-%m-%d').date()
+                            parsed_date = dt.strptime(date_text, '%Y-%m-%d').date()
                         except ValueError:
                             continue
 
