@@ -24,10 +24,10 @@ function Filtered({ user }) {
 
   const columnMap = {
     consultation_id: 'ID Consultation',
-    'Date Publication': 'Date Publication',
+    date_publication: 'Date Publication',
     client: 'Client',
     intitule_projet: 'Intitulé du projet',
-    'Date Expiration': 'Date Expiration',
+    date_expiration: 'Date Expiration',
     lien: 'Lien',
     source: 'Source',
   };
@@ -123,10 +123,10 @@ function Filtered({ user }) {
 
   const headers = [
     'consultation_id',
-    'Date Publication',
+    'date_publication',
     'client',
     'intitule_projet',
-    'Date Expiration',
+    'date_expiration',
     'lien',
     'source',
   ];

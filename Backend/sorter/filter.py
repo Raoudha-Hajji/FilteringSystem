@@ -149,10 +149,10 @@ def ensure_filtered_opp_table_exists(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS filtered_opp (
             consultation_id VARCHAR(100) PRIMARY KEY,
-            `Date Publication` TEXT,
+            date_publication TEXT,
             client TEXT,
             intitule_projet TEXT,
-            `Date Expiration` TEXT,
+            date_expiration TEXT,
             lien TEXT,
             is_filtered TINYINT DEFAULT 0,
             confidence FLOAT,
@@ -165,19 +165,19 @@ def ensure_filtered_opp_table_exists(cursor):
         ("confidence", "FLOAT"),
         ("prediction", "TINYINT"),
         ("source", "TEXT"),
-        ("Date Publication", "TEXT"),
-        ("Date Expiration", "TEXT")
+        ("date_publication", "TEXT"),
+        ("date_expiration", "TEXT")
     ]:
-        cursor.execute(f"ALTER TABLE filtered_opp ADD COLUMN IF NOT EXISTS `{col}` {coltype}")
+        cursor.execute(f"ALTER TABLE filtered_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
 
 def ensure_rejected_opp_table_exists(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rejected_opp (
             consultation_id VARCHAR(100) PRIMARY KEY,
-            `Date Publication` TEXT,
+            date_publication TEXT,
             client TEXT,
             intitule_projet TEXT,
-            `Date Expiration` TEXT,
+            date_expiration TEXT,
             lien TEXT,
             is_filtered TINYINT DEFAULT 0,
             confidence FLOAT,
@@ -190,10 +190,10 @@ def ensure_rejected_opp_table_exists(cursor):
         ("confidence", "FLOAT"),
         ("prediction", "TINYINT"),
         ("source", "TEXT"),
-        ("Date Publication", "TEXT"),
-        ("Date Expiration", "TEXT")
+        ("date_publication", "TEXT"),
+        ("date_expiration", "TEXT")
     ]:
-        cursor.execute(f"ALTER TABLE rejected_opp ADD COLUMN IF NOT EXISTS `{col}` {coltype}")
+        cursor.execute(f"ALTER TABLE rejected_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
 
 def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
@@ -268,10 +268,10 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
 
     keep_columns = [
         "consultation_id",
-        "Date Publication",
+        "date_publication",
         "client",
         "intitule_projet",
-        "Date Expiration",
+        "date_expiration",
         "lien"
     ]
 
