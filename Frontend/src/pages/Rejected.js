@@ -87,7 +87,7 @@ function Rejected({ user }) {
   };
 
   if (data === null) return <div className="loading-spinner"></div>;
-  if (data.length === 0) return <LoadingScreen />;
+  // Remove: if (data.length === 0) return <LoadingScreen />;
 
   const totalPages = Math.ceil(data.length / rowsPerPage);
   const paginatedData = data.slice(
