@@ -9,17 +9,32 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
 import time
 from datetime import datetime
-import os
-from sorter.filter import filter_project
 import traceback
 import logging
 
+from sorter.filter import filter_project
+from filterproject.db_utils import get_mysql_connection
+
 logger = logging.getLogger("myjobs")
+
+
+def row_exists_in_db(consultation_id):
+    """
+    Check if a consultation ID already exists in the tuneps_offers table.
+    Returns True if it exists, False otherwise.
+    """
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM tuneps_offers WHERE consultation_id = %s LIMIT 1", (consultation_id,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists
 
 
 def run_web_scraper():
     logger.info("Running Tuneps web scraper...")
 
+    # Configure Selenium to run headless
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -38,37 +53,53 @@ def run_web_scraper():
         ]
 
         today = datetime.today().strftime("%d/%m/%Y")
-        headers = ['N° consultation', 'Client', 'Date Publication', 'Intitulé du projet',
-                'Date Expiration', 'epBidMasterId', 'info', 'Lien']
+        headers = [
+            'N° consultation', 'Client', 'Date Publication', 'Intitulé du projet',
+            'Date Expiration', 'epBidMasterId', 'info', 'Lien'
+        ]
 
         filtered_rows = []
         rows_added_total = 0
 
+        
+        stop_scraping = False #Flag
+
         for url in urls:
+            if stop_scraping:
+                break  
+
             logger.info(f"Scraping data from: {url}")
             driver.get(url)
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.mat-table")))
 
             page_num = 0
-            while page_num < 50:
+            while page_num < 50 and not stop_scraping:
                 page_num += 1
                 logger.info(f"Scraping page {page_num} from {url}...")
+
                 WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.mat-row")))
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 rows = soup.select('tbody .mat-row')
 
-                specific_date = "21/05/2025"
                 rows_added = 0
+
                 for row in rows:
                     columns = row.find_all('td')
                     row_data = [col.text.strip() for col in columns]
 
                     if len(row_data) >= 2:
+                        consultation_id = row_data[0]
+
+                        if row_exists_in_db(consultation_id):
+                            logger.info(f"Duplicate found in DB (ID: {consultation_id}). Stopping scraper.")
+                            stop_scraping = True
+                            break 
+
                         row_date = row_data[2]
                         if row_date == today:
                             id_number = row_data[0]
-
                             epBidMasterId = row_data[-2]
+
                             if "offres" in url:
                                 details_link = f"{url}/details/{epBidMasterId}/{id_number}"
                             elif "consultations" in url:
@@ -84,6 +115,9 @@ def run_web_scraper():
 
                 rows_added_total += rows_added
 
+                if stop_scraping:
+                    break  
+
                 try:
                     next_button = driver.find_element(By.CSS_SELECTOR, '.mat-paginator-navigation-next')
                     if "disabled" in next_button.get_attribute("class"):
@@ -95,11 +129,10 @@ def run_web_scraper():
                     logger.error(f"Error clicking 'next' on {url}: {e}")
                     break
 
-                    #create the dataframe
         df = pd.DataFrame(filtered_rows, columns=headers)
         df.drop_duplicates(subset=['N° consultation'], inplace=True)
 
-        from filterproject.db_utils import get_mysql_connection
+        #Save to database
         conn = get_mysql_connection()
         cursor = conn.cursor()
 
@@ -125,7 +158,7 @@ def run_web_scraper():
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, tuple(row))
             except Exception as e:
-                print(f"Error inserting row: {e}")
+                logger.error(f"Error inserting row: {e}")
 
         conn.commit()
         conn.close()
@@ -133,6 +166,7 @@ def run_web_scraper():
         logger.info('Data saved to MySQL database (table: tuneps_offers)')
         logger.info(f'Total rows added: {rows_added_total}')
 
+        # ✅ Trigger filtering after scraping
         filter_project("tuneps_offers")
 
     except TimeoutException as te:
@@ -148,4 +182,3 @@ def run_web_scraper():
             except:
                 pass
         logger.info("Scraping attempt finished. Waiting for next scheduled run.")
-
