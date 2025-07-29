@@ -60,11 +60,10 @@ def run_web_scraper():
 
         filtered_rows = []
         rows_added_total = 0
-        stop_scraping = False  # flag
 
         for url in urls:
-            if stop_scraping:
-                break  
+            stop_scraping = False  # Reset flag for each URL
+            url_duplicates_found = False
 
             logger.info(f"Scraping data from: {url}")
             driver.get(url)
@@ -90,12 +89,13 @@ def run_web_scraper():
                         row_date = row_data[2]
 
                         if row_exists_in_db(consultation_id):
-                            logger.info(f"Duplicate found in DB (ID: {consultation_id}). Stopping scraper.")
+                            logger.info(f"Duplicate found in {url} (ID: {consultation_id}). Stopping this URL.")
+                            url_duplicates_found = True
                             stop_scraping = True
                             break
 
                         if row_date != today:
-                            logger.info(f"Found row dated {row_date} (not today). Stopping scraper.")
+                            logger.info(f"Found row dated {row_date} (not today). Stopping this URL.")
                             stop_scraping = True
                             break
 
@@ -120,7 +120,7 @@ def run_web_scraper():
                 if stop_scraping:
                     break 
 
-                # Try to click “Next” if it exists
+                # Try to click "Next" if it exists
                 try:
                     next_button = driver.find_element(By.CSS_SELECTOR, '.mat-paginator-navigation-next')
                     if "disabled" in next_button.get_attribute("class"):
@@ -131,6 +131,14 @@ def run_web_scraper():
                 except Exception as e:
                     logger.error(f"Error clicking 'next' on {url}: {e}")
                     break
+
+            # Log summary for this URL
+            if url_duplicates_found:
+                logger.info(f"Finished scraping {url} - duplicates found, moving to next URL.")
+            else:
+                logger.info(f"Finished scraping {url} - no duplicates found, all data collected.")
+
+        logger.info(f"Web scraper completed. Total rows collected: {rows_added_total}")
 
         df = pd.DataFrame(filtered_rows, columns=headers)
         df.drop_duplicates(subset=['N° consultation'], inplace=True)
