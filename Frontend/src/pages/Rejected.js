@@ -51,7 +51,7 @@ function Rejected({ user }) {
     fetchKeywords();
     const interval = setInterval(() => {
       fetchRejectedData();
-    }, 10 * 1000);
+    }, 40 * 60 * 1000); // 40 minutes
     return () => clearInterval(interval);
     // eslint-disable-next-line
   }, []);

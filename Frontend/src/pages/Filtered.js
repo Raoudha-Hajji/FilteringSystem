@@ -77,7 +77,7 @@ function Filtered({ user }) {
     fetchKeywords();
     const interval = setInterval(() => {
       fetchFilteredData();
-    }, 45 * 60 * 1000);
+    }, 40 * 60 * 1000); // 40 minutes
     return () => clearInterval(interval);
     // eslint-disable-next-line
   }, []);

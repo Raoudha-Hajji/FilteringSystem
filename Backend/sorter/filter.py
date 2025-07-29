@@ -152,9 +152,19 @@ def ensure_filtered_opp_table_exists(cursor):
             client TEXT,
             intitule_projet TEXT,
             lien TEXT,
-            is_filtered TINYINT DEFAULT 0
+            is_filtered TINYINT DEFAULT 0,
+            confidence FLOAT,
+            prediction TINYINT,
+            source TEXT
         )
     """)
+    # Ensure all columns exist for backward compatibility
+    for col, coltype in [
+        ("confidence", "FLOAT"),
+        ("prediction", "TINYINT"),
+        ("source", "TEXT")
+    ]:
+        cursor.execute(f"ALTER TABLE filtered_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
 
 def ensure_rejected_opp_table_exists(cursor):
     cursor.execute("""
@@ -163,9 +173,19 @@ def ensure_rejected_opp_table_exists(cursor):
             client TEXT,
             intitule_projet TEXT,
             lien TEXT,
-            is_filtered TINYINT DEFAULT 0
+            is_filtered TINYINT DEFAULT 0,
+            confidence FLOAT,
+            prediction TINYINT,
+            source TEXT
         )
     """)
+    # Ensure all columns exist for backward compatibility
+    for col, coltype in [
+        ("confidence", "FLOAT"),
+        ("prediction", "TINYINT"),
+        ("source", "TEXT")
+    ]:
+        cursor.execute(f"ALTER TABLE rejected_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
 
 def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
