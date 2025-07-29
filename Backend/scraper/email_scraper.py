@@ -66,8 +66,8 @@ def run_email_scraper():
                     header = email.message_from_bytes(email_date_tuple[1])
                     email_date_str = header.get('Date')
                     if email_date_str:
-                        parsed_date = email.utils.parsedate_to_datetime(email_date_str)
-                        date_publication = parsed_date.strftime('%Y-%m-%d')
+                        email_parsed_date = email.utils.parsedate_to_datetime(email_date_str)
+                        date_publication = email_parsed_date.strftime('%Y-%m-%d')
                     else:
                         date_publication = datetime.now().strftime('%Y-%m-%d')
                 else:
