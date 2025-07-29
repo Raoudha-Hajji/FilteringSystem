@@ -260,13 +260,14 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
         "client",
         "intitule_projet",
         "date_expiration",
-        "lien"
+        "lien",
+        "source"
     ]
 
     # === Save selected rows ===
     if selected_rows:
         ensure_filtered_opp_table_exists(cursor)
-        selected_df = pd.DataFrame(selected_rows)[keep_columns]
+        selected_df = pd.DataFrame(selected_rows)[keep_columns[:-1]]  # Exclude 'source' from initial selection
         selected_df["prediction"] = selected_predictions
         selected_df["confidence"] = selected_confidences
         selected_df["source"] = table_name
@@ -288,10 +289,10 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
         conn.commit()
 
         # Ensure missing columns are filled with None
-        for col in keep_columns:
+        for col in keep_columns[:-1]:  # Exclude 'source' from this check
             if col not in selected_df.columns:
                 selected_df[col] = None
-        selected_df = selected_df[keep_columns]
+        selected_df = selected_df[keep_columns]  # Now include 'source'
 
         selected_df.to_sql("filtered_opp", engine, if_exists="append", index=False)
         logger.info(f"✅ Saved {len(selected_df)} selected rows.")
@@ -299,7 +300,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     # === Save rejected rows ===
     if rejected_rows:
         ensure_rejected_opp_table_exists(cursor)
-        rejected_df = pd.DataFrame(rejected_rows)[keep_columns]
+        rejected_df = pd.DataFrame(rejected_rows)[keep_columns[:-1]]  # Exclude 'source' from initial selection
         rejected_df["prediction"] = rejected_predictions
         rejected_df["confidence"] = rejected_confidences
         rejected_df["source"] = table_name
@@ -321,10 +322,10 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
         conn.commit()
 
         # Ensure missing columns are filled with None
-        for col in keep_columns:
+        for col in keep_columns[:-1]:  # Exclude 'source' from this check
             if col not in rejected_df.columns:
                 rejected_df[col] = None
-        rejected_df = rejected_df[keep_columns]
+        rejected_df = rejected_df[keep_columns]  # Now include 'source'
 
         rejected_df.to_sql("rejected_opp", engine, if_exists="append", index=False)
         logger.info(f"❌ Saved {len(rejected_df)} rejected rows.")
