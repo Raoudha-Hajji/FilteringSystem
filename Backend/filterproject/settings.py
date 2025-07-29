@@ -105,7 +105,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'filter_db',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': 'Admin123!',
         'HOST': 'localhost',  # or your MySQL server address
         'PORT': '3306',       # default MySQL port
     }
