@@ -149,8 +149,10 @@ def ensure_filtered_opp_table_exists(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS filtered_opp (
             consultation_id VARCHAR(100) PRIMARY KEY,
+            `Date Publication` TEXT,
             client TEXT,
             intitule_projet TEXT,
+            `Date Expiration` TEXT,
             lien TEXT,
             is_filtered TINYINT DEFAULT 0,
             confidence FLOAT,
@@ -162,16 +164,20 @@ def ensure_filtered_opp_table_exists(cursor):
     for col, coltype in [
         ("confidence", "FLOAT"),
         ("prediction", "TINYINT"),
-        ("source", "TEXT")
+        ("source", "TEXT"),
+        ("Date Publication", "TEXT"),
+        ("Date Expiration", "TEXT")
     ]:
-        cursor.execute(f"ALTER TABLE filtered_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
+        cursor.execute(f"ALTER TABLE filtered_opp ADD COLUMN IF NOT EXISTS `{col}` {coltype}")
 
 def ensure_rejected_opp_table_exists(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rejected_opp (
             consultation_id VARCHAR(100) PRIMARY KEY,
+            `Date Publication` TEXT,
             client TEXT,
             intitule_projet TEXT,
+            `Date Expiration` TEXT,
             lien TEXT,
             is_filtered TINYINT DEFAULT 0,
             confidence FLOAT,
@@ -183,9 +189,11 @@ def ensure_rejected_opp_table_exists(cursor):
     for col, coltype in [
         ("confidence", "FLOAT"),
         ("prediction", "TINYINT"),
-        ("source", "TEXT")
+        ("source", "TEXT"),
+        ("Date Publication", "TEXT"),
+        ("Date Expiration", "TEXT")
     ]:
-        cursor.execute(f"ALTER TABLE rejected_opp ADD COLUMN IF NOT EXISTS {col} {coltype}")
+        cursor.execute(f"ALTER TABLE rejected_opp ADD COLUMN IF NOT EXISTS `{col}` {coltype}")
 
 def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
@@ -258,7 +266,14 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
             logger.error(f"⚠️ Error processing row {idx + 1}: {e}")
             continue
 
-    keep_columns = ["consultation_id", "client", "intitule_projet", "lien"]
+    keep_columns = [
+        "consultation_id",
+        "Date Publication",
+        "client",
+        "intitule_projet",
+        "Date Expiration",
+        "lien"
+    ]
 
     # === Save selected rows ===
     if selected_rows:
@@ -283,6 +298,12 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
                 (row,)
             )
         conn.commit()
+
+        # Ensure missing columns are filled with None
+        for col in keep_columns:
+            if col not in selected_df.columns:
+                selected_df[col] = None
+        selected_df = selected_df[keep_columns]
 
         selected_df.to_sql("filtered_opp", engine, if_exists="append", index=False)
         logger.info(f"✅ Saved {len(selected_df)} selected rows.")
@@ -310,6 +331,12 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
                 (row,)
             )
         conn.commit()
+
+        # Ensure missing columns are filled with None
+        for col in keep_columns:
+            if col not in rejected_df.columns:
+                rejected_df[col] = None
+        rejected_df = rejected_df[keep_columns]
 
         rejected_df.to_sql("rejected_opp", engine, if_exists="append", index=False)
         logger.info(f"❌ Saved {len(rejected_df)} rejected rows.")

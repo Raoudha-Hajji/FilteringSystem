@@ -24,8 +24,10 @@ function Filtered({ user }) {
 
   const columnMap = {
     consultation_id: 'ID Consultation',
+    'Date Publication': 'Date Publication',
     client: 'Client',
     intitule_projet: 'Intitulé du projet',
+    'Date Expiration': 'Date Expiration',
     lien: 'Lien',
     source: 'Source',
   };
@@ -119,7 +121,15 @@ function Filtered({ user }) {
     currentPage * rowsPerPage
   );
 
-  const headers = Object.keys(columnMap);
+  const headers = [
+    'consultation_id',
+    'Date Publication',
+    'client',
+    'intitule_projet',
+    'Date Expiration',
+    'lien',
+    'source',
+  ];
 
   return (
     <div className="filtered-container">
