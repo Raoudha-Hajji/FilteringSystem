@@ -111,7 +111,7 @@ function Filtered({ user }) {
   };
 
   if (data === null) return <div className="loading-spinner"></div>;
-  if (data.length === 0) return <LoadingScreen />;
+  // Remove: if (data.length === 0) return <LoadingScreen />;
 
   const totalPages = Math.ceil(data.length / rowsPerPage);
   const paginatedData = data.slice(
@@ -172,23 +172,34 @@ function Filtered({ user }) {
               </tr>
             </thead>
             <tbody>
-              {paginatedData.map((row, idx) => (
-                <tr key={idx}>
-                  {headers.map((col) => (
-                    <td key={col}>
-                      {col === 'lien' ? (
-                        <a href={row[col]} target="_blank" rel="noopener noreferrer">Lien</a>
-                      ) : (
-                        row[col]
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {paginatedData.length === 0 ? (
+                <tr><td colSpan={headers.length} style={{ textAlign: 'center' }}>No data available</td></tr>
+              ) : (
+                paginatedData.map((row, idx) => (
+                  <tr key={idx}>
+                    {headers.map((col) => (
+                      <td key={col}>
+                        {col === 'lien' ? (
+                          <a href={row[col]} target="_blank" rel="noopener noreferrer">Lien</a>
+                        ) : (
+                          row[col]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
           {/* Pagination */}
           <div className="pagination">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              style={{ marginRight: '8px' }}
+            >
+              First
+            </button>
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
@@ -198,11 +209,27 @@ function Filtered({ user }) {
             <span className="page-number">
               Page {currentPage} of {totalPages}
             </span>
+            <select
+              value={currentPage}
+              onChange={e => setCurrentPage(Number(e.target.value))}
+              style={{ margin: '0 8px' }}
+            >
+              {Array.from({ length: totalPages }, (_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
+              ))}
+            </select>
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
-              ➞
+              ➡
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              style={{ marginLeft: '8px' }}
+            >
+              Last
             </button>
           </div>
         </div>
