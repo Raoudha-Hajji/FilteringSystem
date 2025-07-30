@@ -20,7 +20,6 @@ function Filtered({ user }) {
 
   const access = localStorage.getItem('access');
 
-  // Fetch filtered data
   const fetchFilteredData = () => {
     axios.get(`${API_BASE}/sorter/api/filtered_data/`)
       .then(res => {
@@ -48,7 +47,6 @@ function Filtered({ user }) {
       });
   };
 
-  // Send status keep or reject
   const handleFeedback = async (row, label) => {
     try {
       await axios.post(`${API_BASE}/sorter/api/feedback/`, {
@@ -70,7 +68,6 @@ function Filtered({ user }) {
     }
   };
 
-  // Fetch keywords
   const fetchKeywords = async () => {
     try {
       const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
@@ -83,13 +80,12 @@ function Filtered({ user }) {
     }
   };
 
-  // On mount: fetch and start auto-refresh
   useEffect(() => {
     fetchFilteredData();
     fetchKeywords();
     const interval = setInterval(() => {
       fetchFilteredData();
-    }, 40 * 60 * 1000); // 40 minutes
+    }, 40 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -123,7 +119,6 @@ function Filtered({ user }) {
 
   if (data === null) return <div className="loading-spinner"></div>;
 
-  // Define columns for Material React Table
   const columns = [
     { accessorKey: 'consultation_id', header: 'ID Consultation' },
     { accessorKey: 'date_publication', header: 'Date Publication' },
@@ -142,10 +137,9 @@ function Filtered({ user }) {
       enableSorting: false,
     },
     { accessorKey: 'source', header: 'Source' },
-    { accessorKey: 'status', header: 'Status' },
     {
-      id: 'feedback',
-      header: 'Feedback',
+      id: 'status',
+      header: 'Status',
       enableColumnFilter: false,
       enableSorting: false,
       Cell: ({ row }) => (
@@ -164,7 +158,6 @@ function Filtered({ user }) {
 
   return (
     <div className="filtered-container">
-      {/* Notification banner above main content */}
       {showNotification && (
         <div className="notification-banner">
           New filtered opportunities have been added!
@@ -172,7 +165,6 @@ function Filtered({ user }) {
         </div>
       )}
       <div className="main-content" style={{ display: 'flex', gap: '24px' }}>
-        {/* LEFT: Keywords */}
         <div
           className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
           style={{ minWidth: '220px' }}
@@ -206,7 +198,6 @@ function Filtered({ user }) {
           )}
         </div>
 
-        {/* RIGHT: Material React Table */}
         <div className="table-wrapper" style={{ flex: 1 }}>
           <MaterialReactTable
             columns={columns}
@@ -216,7 +207,7 @@ function Filtered({ user }) {
             initialState={{ pagination: { pageSize: 10 } }}
             muiTableBodyRowProps={({ row }) => ({
               sx: newlyAddedIds.has(row.original.consultation_id)
-                ? { backgroundColor: '#e6ffe6' } // highlight new rows with light green
+                ? { backgroundColor: '#e6ffe6' }
                 : {},
             })}
           />

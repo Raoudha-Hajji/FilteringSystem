@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
@@ -13,7 +13,6 @@ function Rejected({ user }) {
 
   const access = localStorage.getItem('access');
 
-  // Fetch rejected data
   const fetchRejectedData = () => {
     axios.get(`${API_BASE}/sorter/api/rejected_data/`)
       .then(res => setData(res.data))
@@ -23,7 +22,6 @@ function Rejected({ user }) {
       });
   };
 
-  // Send feedback (status) to backend
   const handleFeedback = async (row, label) => {
     try {
       await axios.post(`${API_BASE}/sorter/api/feedback/`, {
@@ -45,7 +43,6 @@ function Rejected({ user }) {
     }
   };
 
-  // Fetch keywords
   const fetchKeywords = async () => {
     try {
       const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
@@ -97,8 +94,7 @@ function Rejected({ user }) {
 
   if (data === null) return <div className="loading-spinner"></div>;
 
-  // Define columns for Material React Table
-  const columns = [
+  const columns = useMemo(() => [
     { accessorKey: 'consultation_id', header: 'ID Consultation' },
     { accessorKey: 'date_publication', header: 'Date Publication' },
     { accessorKey: 'client', header: 'Client' },
@@ -116,10 +112,9 @@ function Rejected({ user }) {
       enableSorting: false,
     },
     { accessorKey: 'source', header: 'Source' },
-    { accessorKey: 'status', header: 'Status' },
     {
-      id: 'feedback',
-      header: 'Feedback',
+      id: 'status',
+      header: 'Status',
       enableColumnFilter: false,
       enableSorting: false,
       Cell: ({ row }) => (
@@ -134,12 +129,11 @@ function Rejected({ user }) {
         </>
       ),
     },
-  ];
+  ], []);
 
   return (
     <div className="filtered-container">
       <div className="main-content" style={{ display: 'flex', gap: '24px' }}>
-        {/* LEFT: Keywords */}
         <div
           className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
           style={{ minWidth: '220px' }}
@@ -173,7 +167,6 @@ function Rejected({ user }) {
           )}
         </div>
 
-        {/* RIGHT: Material React Table */}
         <div className="table-wrapper" style={{ flex: 1 }}>
           <MaterialReactTable
             columns={columns}
