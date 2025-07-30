@@ -2,29 +2,16 @@ import React, { useEffect, useState } from 'react';
 import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
+import MaterialReactTable from 'material-react-table';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
 function Rejected({ user }) {
   const [data, setData] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
-
   const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
+  const [newKeyword, setNewKeyword] = useState('');
 
   const access = localStorage.getItem('access');
-
-  const columnMap = {
-    consultation_id: 'ID Consultation',
-    date_publication: 'Date Publication',
-    client: 'Client',
-    intitule_projet: 'Intitulé du projet',
-    date_expiration: 'Date Expiration',
-    lien: 'Lien',
-    source: 'Source',
-    status: 'Status', // Added status column
-  };
 
   // Fetch rejected data
   const fetchRejectedData = () => {
@@ -78,7 +65,6 @@ function Rejected({ user }) {
       fetchRejectedData();
     }, 40 * 60 * 1000); // 40 minutes
     return () => clearInterval(interval);
-    // eslint-disable-next-line
   }, []);
 
   const handleAddKeyword = async () => {
@@ -111,27 +97,53 @@ function Rejected({ user }) {
 
   if (data === null) return <div className="loading-spinner"></div>;
 
-  const totalPages = Math.ceil(data.length / rowsPerPage);
-  const paginatedData = data.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const headers = [
-    'consultation_id',
-    'date_publication',
-    'client',
-    'intitule_projet',
-    'date_expiration',
-    'lien',
-    'source',
-    'status', // Added status to headers
+  // Define columns for Material React Table
+  const columns = [
+    { accessorKey: 'consultation_id', header: 'ID Consultation' },
+    { accessorKey: 'date_publication', header: 'Date Publication' },
+    { accessorKey: 'client', header: 'Client' },
+    { accessorKey: 'intitule_projet', header: 'Intitulé du projet' },
+    { accessorKey: 'date_expiration', header: 'Date Expiration' },
+    {
+      accessorKey: 'lien',
+      header: 'Lien',
+      Cell: ({ cell }) => (
+        <a href={cell.getValue()} target="_blank" rel="noopener noreferrer">
+          Lien
+        </a>
+      ),
+      enableColumnFilter: false,
+      enableSorting: false,
+    },
+    { accessorKey: 'source', header: 'Source' },
+    { accessorKey: 'status', header: 'Status' },
+    {
+      id: 'feedback',
+      header: 'Feedback',
+      enableColumnFilter: false,
+      enableSorting: false,
+      Cell: ({ row }) => (
+        <>
+          <button
+            onClick={() => handleFeedback(row.original, 1)}
+            style={{ marginRight: '6px' }}
+          >
+            Keep
+          </button>
+          <button onClick={() => handleFeedback(row.original, 0)}>Reject</button>
+        </>
+      ),
+    },
   ];
 
   return (
     <div className="filtered-container">
-      <div className="main-content">
-        <div className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}>
+      <div className="main-content" style={{ display: 'flex', gap: '24px' }}>
+        {/* LEFT: Keywords */}
+        <div
+          className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
+          style={{ minWidth: '220px' }}
+        >
           <h2>Keywords</h2>
           {(user && (user.is_staff || user.is_superuser)) && (
             <>
@@ -160,76 +172,16 @@ function Rejected({ user }) {
             </button>
           )}
         </div>
-        <div className="table-wrapper">
-          <table className="styled-table">
-            <thead>
-              <tr>
-                {headers.map((col) => (
-                  <th key={col}>{columnMap[col]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedData.map((row, idx) => (
-                <tr key={idx}>
-                  {headers.map((col) => (
-                    <td key={col}>
-                      {col === 'lien' ? (
-                        <a href={row[col]} target="_blank" rel="noopener noreferrer">Lien</a>
-                      ) : col === 'status' ? (
-                        <>
-                          <button onClick={() => handleFeedback(row, 1)}>Keep</button>
-                          <button onClick={() => handleFeedback(row, 0)}>Reject</button>
-                        </>
-                      ) : (
-                        row[col]
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="pagination">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              style={{ marginRight: '8px' }}
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              ⬅
-            </button>
-            <span className="page-number">
-              Page {currentPage} of {totalPages}
-            </span>
-            <select
-              value={currentPage}
-              onChange={e => setCurrentPage(Number(e.target.value))}
-              style={{ margin: '0 8px' }}
-            >
-              {Array.from({ length: totalPages }, (_, i) => (
-                <option key={i + 1} value={i + 1}>{i + 1}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              ➡
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              style={{ marginLeft: '8px' }}
-            >
-              Last
-            </button>
-          </div>
+
+        {/* RIGHT: Material React Table */}
+        <div className="table-wrapper" style={{ flex: 1 }}>
+          <MaterialReactTable
+            columns={columns}
+            data={data}
+            enableGlobalFilter
+            enablePagination
+            initialState={{ pagination: { pageSize: 10 } }}
+          />
         </div>
       </div>
     </div>

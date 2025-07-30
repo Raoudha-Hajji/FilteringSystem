@@ -4,21 +4,25 @@
   display: flex;
   gap: 1rem;
   align-items: flex-start;
+  min-height: 80vh;
+  background-color: #f5f7fa;
 }
 
 .main-content {
   display: flex;
   gap: 2rem; /* space between keywords and table */
+  width: 100%;
 }
 
 /* Keywords Panel */
 .keyword-section {
   width: 25%;
-  background-color: rgba(255, 255, 255, 0.9); /* white but 80% transparent */
+  background-color: rgba(255, 255, 255, 0.95); /* nearly opaque white */
   padding: 1.5rem;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  height: 50%;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .keyword-section h2 {
@@ -31,6 +35,7 @@
   margin-bottom: 0.75rem;
   border-radius: 6px;
   border: 1px solid #ccc;
+  font-size: 1rem;
 }
 
 .keyword-section button {
@@ -41,12 +46,20 @@
   color: white;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.keyword-section button:hover {
+  background-color: #005fa3;
 }
 
 .keyword-section ul {
   list-style: none;
   padding-left: 0;
   margin-top: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .keyword-section li {
@@ -54,6 +67,16 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+  color: #222;
+}
+
+.keyword-section li button {
+  background: transparent;
+  border: none;
+  color: #ff3d3d;
+  font-size: 1.1rem;
+  cursor: pointer;
 }
 
 .refilter-btn {
@@ -66,93 +89,48 @@
   width: 100%;
   font-weight: bold;
   cursor: pointer;
-}
-
-/* Table Styling */
-.table-wrapper {
-  width: 75%;
-  border: 2px solid #0077cc;
-  background-color: rgba(255, 255, 255, 0.9); /* semi-transparent */
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  
-  border-radius: 10px;
-  overflow-x: auto;
-}
-
-.styled-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.styled-table th,
-.styled-table td {
-  padding: 0.75rem;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-
-.styled-table th {
-  background-color: #f4f4f4;
-  font-weight: bold;
-}
-
-.styled-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-/* Pagination */
-.pagination {
-  margin: 1rem 0;
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-}
-
-.pagination button {
-  background-color: #bbb;
-  color: #000;
-  border: none;
-  border-radius: 50%;
-  height: 32px;
-  width: 32px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   transition: background-color 0.3s ease;
 }
 
-.pagination button:hover:not(:disabled) {
-  background-color: #f33939;
+.refilter-btn:hover {
+  background-color: #cc3232;
+}
+
+/* Table Wrapper */
+.table-wrapper {
+  width: 75%;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  /* Material React Table uses MUI styling, so we keep minimal here */
+}
+
+/* Override some Material UI Table styles */
+.MuiTable-root {
+  font-size: 0.9rem;
+  color: #222;
+}
+
+.MuiTableHead-root {
+  background-color: #0077cc;
   color: white;
 }
 
-.pagination button:disabled {
-  background-color: #eee;
-  cursor: not-allowed;
-  color: #999;
+.MuiTableCell-head {
+  font-weight: 700;
+  color: white;
 }
 
-.page-number {
-  font-weight: 600;
-  font-size: 1rem;
-  min-width: 120px;
-  text-align: center;
-  color: #363232;
+.MuiTableRow-root:hover {
+  background-color: #f0f7ff !important;
 }
 
-
-/* Loading + No Data */
-.loading, .no-data {
-  font-size: 1.5rem;
-  margin-top: 2rem;
-  color: #555;
+.MuiTablePagination-root {
+  font-size: 0.9rem;
 }
 
+/* Notification Banner */
 .notification-banner {
   background-color: #e0f7e9;
   color: #256029;
@@ -175,6 +153,7 @@
   cursor: pointer;
 }
 
+/* Loading Spinner */
 .loading-spinner {
   border: 6px solid #f3f3f3; 
   border-top: 6px solid #3498db; 
@@ -182,7 +161,7 @@
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
-  margin: 15rem auto; /* center horizontally */
+  margin: 15rem auto;
 }
 
 @keyframes spin {
@@ -190,16 +169,19 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Highlight newly added rows */
+.MuiTableBody-root tr.new-row,
 .highlight-new {
   animation: highlightFade 8s ease forwards;
-  background-color: rgba(0, 119, 204, 0.7); 
+  background-color: rgba(0, 119, 204, 0.15) !important;
 }
 
 @keyframes highlightFade {
-  from { background-color: rgba(0, 119, 204, 0.7); }
+  from { background-color: rgba(0, 119, 204, 0.15); }
   to { background-color: transparent; }
 }
 
+/* Styles for users without staff/admin rights */
 .keyword-section-normal {
   background: #fafbfc;
   border: 1.5px solid #e0e0e0;
