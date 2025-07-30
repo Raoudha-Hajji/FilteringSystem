@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
@@ -7,44 +7,47 @@ import { MaterialReactTable } from 'material-react-table';
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
 function Filtered({ user }) {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState([]);
   const [prevCount, setPrevCount] = useState(0);
   const [showNotification, setShowNotification] = useState(false);
-
   const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState('');
-
   const [seenIds, setSeenIds] = useState(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   const access = localStorage.getItem('access');
 
-  const fetchFilteredData = () => {
-    axios.get(`${API_BASE}/sorter/api/filtered_data/`)
-      .then(res => {
-        const newData = res.data;
-        const newIdsSet = new Set(newData.map(row => row.consultation_id));
-        if (isInitialLoad) {
-          setSeenIds(newIdsSet);
-          setIsInitialLoad(false);
-          setNewlyAddedIds(new Set());
-        } else {
-          const addedIds = new Set([...newIdsSet].filter(id => !seenIds.has(id)));
-          setNewlyAddedIds(addedIds);
-          setSeenIds(newIdsSet);
-          setTimeout(() => setNewlyAddedIds(new Set()), 300_000);
-        }
-        setData(newData);
-        setPrevCount(newData.length);
-        if (!isInitialLoad && newData.length > prevCount) {
-          setShowNotification(true);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching data:', err);
-        setData([]);
-      });
+  const fetchFilteredData = async () => {
+    setIsLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}/sorter/api/filtered_data/`);
+      const newData = res.data;
+      const newIdsSet = new Set(newData.map(row => row.consultation_id));
+
+      if (isInitialLoad) {
+        setSeenIds(newIdsSet);
+        setIsInitialLoad(false);
+        setNewlyAddedIds(new Set());
+      } else {
+        const addedIds = new Set([...newIdsSet].filter(id => !seenIds.has(id)));
+        setNewlyAddedIds(addedIds);
+        setSeenIds(newIdsSet);
+        setTimeout(() => setNewlyAddedIds(new Set()), 300_000);
+      }
+
+      setData(newData);
+      if (!isInitialLoad && newData.length > prevCount) {
+        setShowNotification(true);
+      }
+      setPrevCount(newData.length);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFeedback = async (row, label) => {
@@ -117,9 +120,7 @@ function Filtered({ user }) {
     fetchFilteredData();
   };
 
-  if (data === null) return <div className="loading-spinner"></div>;
-
-  const columns = [
+  const columns = useMemo(() => [
     { accessorKey: 'consultation_id', header: 'ID Consultation' },
     { accessorKey: 'date_publication', header: 'Date Publication' },
     { accessorKey: 'client', header: 'Client' },
@@ -154,7 +155,7 @@ function Filtered({ user }) {
         </>
       ),
     },
-  ];
+  ], []);
 
   return (
     <div className="filtered-container">
@@ -202,6 +203,7 @@ function Filtered({ user }) {
           <MaterialReactTable
             columns={columns}
             data={data}
+            state={{ isLoading }}
             enableGlobalFilter
             enablePagination
             initialState={{ pagination: { pageSize: 10 } }}
