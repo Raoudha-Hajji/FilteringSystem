@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './Filtered.css';
 import LoadingScreen from './LoadingScreen';
 import axios from 'axios';
-import MaterialReactTable from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
