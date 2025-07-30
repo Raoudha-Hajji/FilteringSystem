@@ -30,6 +30,7 @@ function Filtered({ user }) {
     date_expiration: 'Date Expiration',
     lien: 'Lien',
     source: 'Source',
+    status: 'Status'
   };
 
   // Fetch filtered data
@@ -60,6 +61,28 @@ function Filtered({ user }) {
       });
   };
 
+  // Send status keep or reject
+  const handleFeedback = async (row, label) => {
+    try {
+      await axios.post(`${API_BASE}/sorter/api/feedback/`, {
+        consultation_id: row.consultation_id,
+        client: row.client,
+        intitule_projet: row.intitule_projet,
+        lien: row.lien,
+        Selection: label
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${access}`,
+        }
+      });
+      alert(`Feedback sent as ${label === 1 ? 'Keep' : 'Reject'}`);
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+      alert("Failed to send feedback.");
+    }
+  };  
+
   // Fetch keywords
   const fetchKeywords = async () => {
     try {
@@ -72,7 +95,6 @@ function Filtered({ user }) {
       setKeywords([]);
     }
   };
-
   // On mount: fetch and start auto-refresh
   useEffect(() => {
     fetchFilteredData();
@@ -129,6 +151,7 @@ function Filtered({ user }) {
     'date_expiration',
     'lien',
     'source',
+    'status',
   ];
 
   return (
@@ -196,6 +219,10 @@ function Filtered({ user }) {
                         )}
                       </td>
                     ))}
+                      <td>
+                        <button onClick={() => handleFeedback(row, 1)}>Keep</button>
+                        <button onClick={() => handleFeedback(row, 0)}>Reject</button>
+                      </td>
                   </tr>
                 ))
               )}
@@ -249,3 +276,4 @@ function Filtered({ user }) {
 }
 
 export default Filtered;
+

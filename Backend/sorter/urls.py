@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import get_filtered_table, get_rejected_table, keyword_handler, refilter_handler
+from .views import get_filtered_table, get_rejected_table, keyword_handler, refilter_handler, feedback_view
 from django.urls import path
 
 
@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/keywords/', keyword_handler, name='keywords'),  # Handles GET and POST
     path('api/keywords/<int:keyword_id>/', keyword_handler, name='keyword_detail'),  # Handles DELETE
     path('api/refilter/', refilter_handler, name='refilter'),
+    path('api/feedback/', feedback_view, name='feedback'),
 ]

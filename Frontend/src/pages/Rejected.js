@@ -23,6 +23,7 @@ function Rejected({ user }) {
     date_expiration: 'Date Expiration',
     lien: 'Lien',
     source: 'Source',
+    status: 'Status', // Added status column
   };
 
   // Fetch rejected data
@@ -33,6 +34,28 @@ function Rejected({ user }) {
         console.error('Error fetching data:', err);
         setData([]);
       });
+  };
+
+  // Send feedback (status) to backend
+  const handleFeedback = async (row, label) => {
+    try {
+      await axios.post(`${API_BASE}/sorter/api/feedback/`, {
+        consultation_id: row.consultation_id,
+        client: row.client,
+        intitule_projet: row.intitule_projet,
+        lien: row.lien,
+        Selection: label
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${access}`,
+        }
+      });
+      alert(`Feedback sent as ${label === 1 ? 'Keep' : 'Reject'}`);
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+      alert("Failed to send feedback.");
+    }
   };
 
   // Fetch keywords
@@ -87,7 +110,6 @@ function Rejected({ user }) {
   };
 
   if (data === null) return <div className="loading-spinner"></div>;
-  // Remove: if (data.length === 0) return <LoadingScreen />;
 
   const totalPages = Math.ceil(data.length / rowsPerPage);
   const paginatedData = data.slice(
@@ -103,6 +125,7 @@ function Rejected({ user }) {
     'date_expiration',
     'lien',
     'source',
+    'status', // Added status to headers
   ];
 
   return (
@@ -153,6 +176,11 @@ function Rejected({ user }) {
                     <td key={col}>
                       {col === 'lien' ? (
                         <a href={row[col]} target="_blank" rel="noopener noreferrer">Lien</a>
+                      ) : col === 'status' ? (
+                        <>
+                          <button onClick={() => handleFeedback(row, 1)}>Keep</button>
+                          <button onClick={() => handleFeedback(row, 0)}>Reject</button>
+                        </>
                       ) : (
                         row[col]
                       )}

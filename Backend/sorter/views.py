@@ -97,3 +97,32 @@ def refilter_handler(request):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+import mysql.connector
+from filterproject.db_utils import get_mysql_connection
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def feedback_view(request):
+    data = request.data
+    required = ['consultation_id', 'client', 'intitule_projet', 'lien', 'Selection']
+    if not all(k in data for k in required):
+        return Response({"error": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO training_data (consultation_id, client, intitule_projet, lien, Selection)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (data['consultation_id'], data['client'], data['intitule_projet'], data['lien'], data['Selection']))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return Response({"status": "success"}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
