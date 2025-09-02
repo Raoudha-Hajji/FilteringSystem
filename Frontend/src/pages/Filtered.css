@@ -7,14 +7,15 @@
   min-height: 80vh;
   background-color: #f5f7fa;
   position: relative;
+  margin-top: 60px; /* Add margin to avoid navbar overlap */
 }
 
 /* Keywords Sidebar - Pull out from left */
 .keywords-sidebar {
   position: fixed;
   left: 0;
-  top: 0;
-  height: 100vh;
+  top: 60px; /* Start below navbar */
+  height: calc(100vh - 60px); /* Adjust height to not overlap navbar */
   width: 250px;
   background-color: #f5f7fa;
   z-index: 1000;
@@ -39,6 +40,12 @@
   font-weight: bold;
   cursor: pointer;
   white-space: nowrap;
+  opacity: 0; /* Hide the tab by default */
+  transition: opacity 0.3s ease;
+}
+
+.keywords-sidebar:hover::before {
+  opacity: 1; /* Show tab only on hover */
 }
 
 /* Keywords Panel */
@@ -132,12 +139,14 @@
 /* Main Table Area - Takes center of page */
 .main-table-area {
   flex: 1;
-  margin-left: 60px; /* Space for the keywords tab */
+  margin-left: 80px; /* Increased space for better centering */
+  margin-right: 2rem; /* Add right margin for better balance */
   background-color: white;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 1rem;
+  padding: 1.5rem;
   min-height: 80vh;
+  max-width: calc(100vw - 120px); /* Ensure table doesn't get too wide */
 }
 
 /* Material React Table Styles */
@@ -255,22 +264,27 @@
   }
   
   .main-table-area {
-    margin-left: 50px;
+    margin-left: 60px;
+    margin-right: 1rem;
   }
 }
 
 @media (max-width: 768px) {
   .filtered-container {
     padding: 0.5rem;
+    margin-top: 50px; /* Adjust for smaller navbar */
   }
   
   .keywords-sidebar {
     width: 200px;
+    top: 50px;
+    height: calc(100vh - 50px);
   }
   
   .main-table-area {
     margin-left: 40px;
-    padding: 0.5rem;
+    margin-right: 0.5rem;
+    padding: 1rem;
   }
   
   .keyword-section {
