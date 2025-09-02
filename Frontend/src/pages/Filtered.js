@@ -121,11 +121,36 @@ function Filtered({ user }) {
   };
 
   const columns = useMemo(() => [
-    { accessorKey: 'consultation_id', header: 'ID Consultation' },
-    { accessorKey: 'date_publication', header: 'Date Publication' },
-    { accessorKey: 'client', header: 'Client' },
-    { accessorKey: 'intitule_projet', header: 'Intitulé du projet' },
-    { accessorKey: 'date_expiration', header: 'Date Expiration' },
+    { 
+      accessorKey: 'consultation_id', 
+      header: 'ID Consultation',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
+    { 
+      accessorKey: 'date_publication', 
+      header: 'Date Publication',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
+    { 
+      accessorKey: 'client', 
+      header: 'Client',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
+    { 
+      accessorKey: 'intitule_projet', 
+      header: 'Intitulé du projet',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
+    { 
+      accessorKey: 'date_expiration', 
+      header: 'Date Expiration',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
     {
       accessorKey: 'lien',
       header: 'Lien',
@@ -137,7 +162,12 @@ function Filtered({ user }) {
       enableColumnFilter: false,
       enableSorting: false,
     },
-    { accessorKey: 'source', header: 'Source' },
+    { 
+      accessorKey: 'source', 
+      header: 'Source',
+      enableColumnFilter: false,
+      enableSorting: false
+    },
     {
       id: 'status',
       header: 'Status',
