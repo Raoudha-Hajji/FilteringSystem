@@ -56,7 +56,11 @@ function Rejected({ user }) {
           Authorization: `Bearer ${access}`,
         }
       });
-      alert(`Feedback sent as ${label === 1 ? 'Keep' : 'Reject'}`);
+      
+      // Remove the kept row from the rejected data
+      setData(prevData => prevData.filter(item => item.consultation_id !== row.consultation_id));
+      
+      alert(`Row kept and moved to filtered table. Feedback saved as ${label === 1 ? 'Keep' : 'Reject'}`);
     } catch (error) {
       console.error("Error sending feedback:", error);
       alert("Failed to send feedback.");
@@ -117,12 +121,29 @@ function Rejected({ user }) {
     {
       id: 'status',
       header: 'Status',
-      size: 150,
+      size: 100,
+      minSize: 80,
+      maxSize: 120,
+      enableColumnFilter: false,
+      enableSorting: false,
       Cell: ({ row }) => (
-        <>
-          <button onClick={() => handleFeedback(row.original, 1)} style={{ marginRight: '6px' }}>Keep</button>
-          <button onClick={() => handleFeedback(row.original, 0)}>Reject</button>
-        </>
+        <button
+          onClick={() => handleFeedback(row.original, 1)}
+          style={{
+            backgroundColor: '#0077cc',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'background-color 0.3s ease'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#005fa3'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#0077cc'}
+        >
+          Keep
+        </button>
       ),
     },
   ], []);
