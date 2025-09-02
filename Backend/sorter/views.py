@@ -116,10 +116,36 @@ def feedback_view(request):
     try:
         conn = get_mysql_connection()
         cursor = conn.cursor()
+        
+        # 1. Save to training_data (for model training)
         cursor.execute("""
             INSERT INTO training_data (consultation_id, client, intitule_projet, lien, Selection)
             VALUES (%s, %s, %s, %s, %s)
         """, (data['consultation_id'], data['client'], data['intitule_projet'], data['lien'], data['Selection']))
+        
+        # 2. MOVE ROWS BETWEEN TABLES based on Selection value
+        if data['Selection'] == 1:  # Keep button clicked
+            # Move row from rejected_opp → filtered_opp
+            cursor.execute("""
+                INSERT INTO filtered_opp (consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source)
+                SELECT consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source
+                FROM rejected_opp WHERE consultation_id = %s
+            """, (data['consultation_id'],))
+            
+            # Remove from rejected_opp
+            cursor.execute("DELETE FROM rejected_opp WHERE consultation_id = %s", (data['consultation_id'],))
+            
+        elif data['Selection'] == 0:  # Reject button clicked
+            # Move row from filtered_opp → rejected_opp
+            cursor.execute("""
+                INSERT INTO rejected_opp (consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source)
+                SELECT consultation_id, date_publication, client, intitule_projet, date_expiration, lien, source
+                FROM filtered_opp WHERE consultation_id = %s
+            """, (data['consultation_id'],))
+            
+            # Remove from filtered_opp
+            cursor.execute("DELETE FROM filtered_opp WHERE consultation_id = %s", (data['consultation_id'],))
+        
         conn.commit()
         cursor.close()
         conn.close()
