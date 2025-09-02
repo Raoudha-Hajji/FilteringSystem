@@ -124,36 +124,44 @@ function Filtered({ user }) {
     { 
       accessorKey: 'consultation_id', 
       header: 'ID Consultation',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 120,
+      minSize: 100,
+      maxSize: 150
     },
     { 
       accessorKey: 'date_publication', 
       header: 'Date Publication',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 140,
+      minSize: 120,
+      maxSize: 160
     },
     { 
       accessorKey: 'client', 
       header: 'Client',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 200,
+      minSize: 150,
+      maxSize: 300
     },
     { 
       accessorKey: 'intitule_projet', 
       header: 'Intitulé du projet',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 400,
+      minSize: 300,
+      maxSize: 800
     },
     { 
       accessorKey: 'date_expiration', 
       header: 'Date Expiration',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 140,
+      minSize: 120,
+      maxSize: 160
     },
     {
       accessorKey: 'lien',
       header: 'Lien',
+      size: 80,
+      minSize: 70,
+      maxSize: 100,
       Cell: ({ cell }) => (
         <a href={cell.getValue()} target="_blank" rel="noopener noreferrer">
           Lien
@@ -165,12 +173,16 @@ function Filtered({ user }) {
     { 
       accessorKey: 'source', 
       header: 'Source',
-      enableColumnFilter: false,
-      enableSorting: false
+      size: 120,
+      minSize: 100,
+      maxSize: 150
     },
     {
       id: 'status',
       header: 'Status',
+      size: 150,
+      minSize: 130,
+      maxSize: 180,
       enableColumnFilter: false,
       enableSorting: false,
       Cell: ({ row }) => (
@@ -195,10 +207,10 @@ function Filtered({ user }) {
           <button className="close-btn" onClick={() => setShowNotification(false)}>❌</button>
         </div>
       )}
-      <div className="main-content">
-        <div
-          className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
-        >
+      
+      {/* Keywords Sidebar */}
+      <div className="keywords-sidebar">
+        <div className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}>
           <h2>Keywords</h2>
           {(user && (user.is_staff || user.is_superuser)) && (
             <>
@@ -227,29 +239,25 @@ function Filtered({ user }) {
             </button>
           )}
         </div>
+      </div>
 
-        <div className="table-wrapper">
-          <MaterialReactTable
-            columns={columns}
-            data={data}
-            state={{ isLoading }}
-            enableGlobalFilter
-            enablePagination
-            initialState={{ pagination: { pageSize: 10 } }}
-            muiTableContainerProps={{
-              sx: {
-                maxWidth: '100%',
-                overflow: 'hidden',
-                width: '100%'
-              }
-            }}
-            muiTableBodyRowProps={({ row }) => ({
-              sx: newlyAddedIds.has(row.original.consultation_id)
-                ? { backgroundColor: '#e6ffe6' }
-                : {},
-            })}
-          />
-        </div>
+      {/* Main Table Area */}
+      <div className="main-table-area">
+        <MaterialReactTable
+          columns={columns}
+          data={data}
+          state={{ isLoading }}
+          enableGlobalFilter
+          enablePagination
+          enableColumnResizing
+          layoutMode="grid"
+          initialState={{ pagination: { pageSize: 10 } }}
+          muiTableBodyRowProps={({ row }) => ({
+            sx: newlyAddedIds.has(row.original.consultation_id)
+              ? { backgroundColor: '#e6ffe6' }
+              : {},
+          })}
+        />
       </div>
     </div>
   );
