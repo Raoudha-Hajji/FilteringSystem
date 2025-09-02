@@ -195,10 +195,9 @@ function Filtered({ user }) {
           <button className="close-btn" onClick={() => setShowNotification(false)}>❌</button>
         </div>
       )}
-      <div className="main-content" style={{ display: 'flex', gap: '24px' }}>
+      <div className="main-content">
         <div
           className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
-          style={{ minWidth: '220px' }}
         >
           <h2>Keywords</h2>
           {(user && (user.is_staff || user.is_superuser)) && (
@@ -229,7 +228,7 @@ function Filtered({ user }) {
           )}
         </div>
 
-        <div className="table-wrapper" style={{ flex: 1 }}>
+        <div className="table-wrapper">
           <MaterialReactTable
             columns={columns}
             data={data}
@@ -237,6 +236,13 @@ function Filtered({ user }) {
             enableGlobalFilter
             enablePagination
             initialState={{ pagination: { pageSize: 10 } }}
+            muiTableContainerProps={{
+              sx: {
+                maxWidth: '100%',
+                overflow: 'hidden',
+                width: '100%'
+              }
+            }}
             muiTableBodyRowProps={({ row }) => ({
               sx: newlyAddedIds.has(row.original.consultation_id)
                 ? { backgroundColor: '#e6ffe6' }

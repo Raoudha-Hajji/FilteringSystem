@@ -166,10 +166,9 @@ function Rejected({ user }) {
 
   return (
     <div className="filtered-container">
-      <div className="main-content" style={{ display: 'flex', gap: '24px' }}>
+      <div className="main-content">
         <div
           className={`keyword-section${user && !user.is_staff && !user.is_superuser ? ' keyword-section-normal' : ''}`}
-          style={{ minWidth: '220px' }}
         >
           <h2>Keywords</h2>
           {(user && (user.is_staff || user.is_superuser)) && (
@@ -200,7 +199,7 @@ function Rejected({ user }) {
           )}
         </div>
 
-        <div className="table-wrapper" style={{ flex: 1 }}>
+        <div className="table-wrapper">
           <MaterialReactTable
             columns={columns}
             data={data}
@@ -208,6 +207,13 @@ function Rejected({ user }) {
             enableGlobalFilter
             enablePagination
             initialState={{ pagination: { pageSize: 10 } }}
+            muiTableContainerProps={{
+              sx: {
+                maxWidth: '100%',
+                overflow: 'hidden',
+                width: '100%'
+              }
+            }}
           />
         </div>
       </div>
