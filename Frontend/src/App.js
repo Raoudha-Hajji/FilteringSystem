@@ -81,9 +81,6 @@ function App() {
           <Link to="/rejected" className="nav-button">
             Opportunités Rejetées
           </Link>
-          <Link to="/visualization" className="nav-button">
-            Vue des Données
-          </Link>
           <div className="profile-menu-container" ref={menuRef}>
             <div
               className="profile-circle"
