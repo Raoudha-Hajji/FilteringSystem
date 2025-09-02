@@ -177,7 +177,7 @@ def ensure_rejected_opp_table_exists(cursor):
         )
     """)
 
-def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
+def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  # Lowered from 0.6 to 0.4
     load_classifier()
 
     if classifier is None:
@@ -225,7 +225,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     selected_predictions, selected_confidences = [], []
     rejected_predictions, rejected_confidences = [], []
 
-    BORDERLINE_LOW = 0.4
+    BORDERLINE_LOW = 0.3  # Lowered from 0.4 to 0.3
     BORDERLINE_HIGH = 0.59
 
     for idx, text in enumerate(normalized_texts):
@@ -241,17 +241,31 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
             is_borderline = BORDERLINE_LOW <= confidence < BORDERLINE_HIGH
             use_llm = confidence >= threshold or keyword_match or is_borderline
 
-            if use_llm and mistral_filter(text):
+            # More permissive logic: if keywords match or confidence is decent, give it a chance
+            if use_llm and (mistral_filter(text) or keyword_match or confidence > 0.5):
                 selected_rows.append(row)
                 selected_predictions.append(int(prediction))
                 selected_confidences.append(float(confidence))
+                logger.info(f"✅ Row {idx + 1} selected (LLM: {mistral_filter(text)}, Keywords: {keyword_match}, Confidence: {confidence:.3f})")
             else:
                 rejected_rows.append(row)
                 rejected_predictions.append(int(prediction))
                 rejected_confidences.append(float(confidence))
+                logger.info(f"❌ Row {idx + 1} rejected (LLM: {mistral_filter(text)}, Keywords: {keyword_match}, Confidence: {confidence:.3f})")
 
         except Exception as e:
             logger.error(f"⚠️ Error processing row {idx + 1}: {e}")
+            # On error, be more permissive - check if it has IT-related keywords
+            if any(k in text.lower() for k in ["web", "software", "digital", "platform", "application", "system", "it", "information", "technology"]):
+                logger.info(f"✅ Row {idx + 1} selected due to IT keywords despite error")
+                selected_rows.append(row)
+                selected_predictions.append(1)  # Assume positive
+                selected_confidences.append(0.6)  # Assume decent confidence
+            else:
+                logger.info(f"❌ Row {idx + 1} rejected due to error and no IT keywords")
+                rejected_rows.append(row)
+                rejected_predictions.append(0)  # Assume negative
+                rejected_confidences.append(0.3)  # Assume low confidence
             continue
 
     keep_columns = [
@@ -373,7 +387,7 @@ def get_source_tables():
             SELECT column_name FROM information_schema.columns 
             WHERE table_name = %s AND table_schema = %s
         """, (table, db_name))
-        columns = [col[0] for col in cursor.fetchall()]
+        columns = [col[0] for row in cursor.fetchall()]
         if ("consultation_id" in columns) and ("Selection" not in columns) and ("source" not in columns):
             source_tables.append(table)
     cursor.close()
@@ -404,27 +418,3 @@ def re_filter():
 
     cursor.close()
     conn.close()
-
-def build_prompt(text):
-    prompt = f"""
-You are an expert in classifying project descriptions.
-
-Your task: Decide if the following project is related to Information Technology (IT) and is focused on software, digital platforms, or IT services. 
-- Accept only if the project is about software, digital solutions, IT services, or online platforms.
-- Reject any project that is mainly about hardware, equipment, physical devices, or includes significant hardware purchases, even if software is also mentioned.
-- Reject all non-IT projects (e.g., construction, roads, lighting, vehicles, cleaning, physical infrastructure, public works, etc.).
-
-Examples:
-- "website development" → yes
-- "digital platform for e-learning" → yes
-- "purchase of computers and printers" → no
-- "building construction" → no
-- "expanding public lighting network" → no
-- "road works" → no
-
-Reply with only "yes" if the project is IT-related and not focused on hardware. Reply with only "no" for hardware-focused or non-IT projects. Do not explain your answer.
-
-Project title: {text}
-Answer:
-"""
-    return prompt
