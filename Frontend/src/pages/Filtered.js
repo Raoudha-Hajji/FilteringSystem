@@ -7,18 +7,18 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 
 function Filtered({ user }) {
   const [data, setData] = useState([]);
-  const [prevCount, setPrevCount] = useState(0);
-  const [showNotification, setShowNotification] = useState(false);
   const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState('');
   const [seenIds, setSeenIds] = useState(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const access = localStorage.getItem('access');
 
+  // --- Fetch Filtered Data ---
   const fetchFilteredData = async () => {
     setIsLoading(true);
     try {
@@ -34,14 +34,11 @@ function Filtered({ user }) {
         const addedIds = new Set([...newIdsSet].filter(id => !seenIds.has(id)));
         setNewlyAddedIds(addedIds);
         setSeenIds(newIdsSet);
-        setTimeout(() => setNewlyAddedIds(new Set()), 300_000); // 5 minutes
+        setTimeout(() => setNewlyAddedIds(new Set()), 300_000); // reset after 5 min
       }
 
       setData(newData);
-      if (!isInitialLoad && newData.length > prevCount) {
-        setShowNotification(true);
-      }
-      setPrevCount(newData.length);
+      if (!isInitialLoad && newData.length > data.length) setShowNotification(true);
     } catch (err) {
       console.error('Error fetching data:', err);
       setData([]);
@@ -50,6 +47,7 @@ function Filtered({ user }) {
     }
   };
 
+  // --- Fetch Keywords ---
   const fetchKeywords = async () => {
     try {
       const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
@@ -62,13 +60,7 @@ function Filtered({ user }) {
     }
   };
 
-  useEffect(() => {
-    fetchFilteredData();
-    fetchKeywords();
-    const interval = setInterval(fetchFilteredData, 40 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
+  // --- Feedback ---
   const handleFeedback = async (row, label) => {
     try {
       await axios.post(`${API_BASE}/sorter/api/feedback/`, {
@@ -78,7 +70,10 @@ function Filtered({ user }) {
         lien: row.lien,
         Selection: label
       }, {
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${access}`,
+        }
       });
       alert(`Feedback sent as ${label === 1 ? 'Keep' : 'Reject'}`);
     } catch (error) {
@@ -87,6 +82,7 @@ function Filtered({ user }) {
     }
   };
 
+  // --- Add / Delete Keywords ---
   const handleAddKeyword = async () => {
     if (!newKeyword.trim()) return;
     if (!user || (!user.is_staff && !user.is_superuser)) return;
@@ -94,7 +90,7 @@ function Filtered({ user }) {
       { keyword_fr: newKeyword },
       { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` } }
     );
-    setNewKeyword("");
+    setNewKeyword('');
     fetchKeywords();
     fetchFilteredData();
   };
@@ -115,18 +111,32 @@ function Filtered({ user }) {
     fetchFilteredData();
   };
 
+  // --- Effects ---
+  useEffect(() => {
+    fetchFilteredData();
+    fetchKeywords();
+    const interval = setInterval(() => fetchFilteredData(), 40 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- Columns ---
   const columns = useMemo(() => [
-    { accessorKey: 'consultation_id', header: 'ID', enableColumnFilter: false, enableSorting: false },
-    { accessorKey: 'date_publication', header: 'Date Publication', enableColumnFilter: false, enableSorting: false },
-    { accessorKey: 'client', header: 'Client', enableColumnFilter: false, enableSorting: false },
-    { accessorKey: 'intitule_projet', header: 'Intitulé du projet', enableColumnFilter: false, enableSorting: false },
-    { accessorKey: 'date_expiration', header: 'Date Expiration', enableColumnFilter: false, enableSorting: false },
-    { accessorKey: 'lien', header: 'Lien',
+    { accessorKey: 'consultation_id', header: 'ID', size: 80 },
+    { accessorKey: 'client', header: 'Client', size: 150 },
+    { accessorKey: 'intitule_projet', header: 'Intitulé du projet', size: 500, enableResizing: true },
+    { accessorKey: 'date_publication', header: 'Publication', size: 100 },
+    { accessorKey: 'date_expiration', header: 'Expiration', size: 100 },
+    {
+      accessorKey: 'lien',
+      header: 'Lien',
+      size: 100,
       Cell: ({ cell }) => <a href={cell.getValue()} target="_blank" rel="noopener noreferrer">Lien</a>,
-      enableColumnFilter: false, enableSorting: false
     },
-    { accessorKey: 'source', header: 'Source', enableColumnFilter: false, enableSorting: false },
-    { id: 'status', header: 'Status', enableColumnFilter: false, enableSorting: false,
+    { accessorKey: 'source', header: 'Source', size: 100 },
+    {
+      id: 'status',
+      header: 'Status',
+      size: 150,
       Cell: ({ row }) => (
         <>
           <button onClick={() => handleFeedback(row.original, 1)} style={{ marginRight: '6px' }}>Keep</button>
@@ -146,38 +156,29 @@ function Filtered({ user }) {
       )}
 
       {/* Keywords Drawer Toggle */}
-      <button className="keyword-toggle-btn" onClick={() => setDrawerOpen(!drawerOpen)}>
-        {drawerOpen ? 'Close Keywords' : 'Keywords'}
-      </button>
+      <button className="keywords-toggle-btn" onClick={() => setIsDrawerOpen(true)}>Keywords</button>
 
-      {/* Keywords Drawer */}
-      <div className={`keyword-drawer ${drawerOpen ? 'open' : ''}`}>
-        <h2>Keywords</h2>
-        {(user && (user.is_staff || user.is_superuser)) && (
-          <>
-            <input
-              type="text"
-              value={newKeyword}
-              onChange={(e) => setNewKeyword(e.target.value)}
-              placeholder="New keyword"
-            />
-            <button onClick={handleAddKeyword}>Add</button>
-          </>
-        )}
-        <ul>
-          {keywords.map((kw) => (
-            <li key={kw.id}>
-              {kw.keyword_fr}
-              {(user && (user.is_staff || user.is_superuser)) && (
-                <button onClick={() => handleDeleteKeyword(kw.id)}>❌</button>
-              )}
-            </li>
-          ))}
-        </ul>
-        {(user && (user.is_staff || user.is_superuser)) && (
-          <button className="refilter-btn" onClick={handleReFilter}>Re-filter</button>
-        )}
-      </div>
+      {isDrawerOpen && (
+        <div className="keywords-drawer">
+          <button className="close-drawer" onClick={() => setIsDrawerOpen(false)}>❌</button>
+          <h2>Keywords</h2>
+          {(user?.is_staff || user?.is_superuser) && (
+            <>
+              <input type="text" value={newKeyword} onChange={(e) => setNewKeyword(e.target.value)} placeholder="New keyword"/>
+              <button onClick={handleAddKeyword}>Add</button>
+            </>
+          )}
+          <ul>
+            {keywords.map((kw) => (
+              <li key={kw.id}>
+                {kw.keyword_fr}
+                {(user?.is_staff || user?.is_superuser) && <button onClick={() => handleDeleteKeyword(kw.id)}>❌</button>}
+              </li>
+            ))}
+          </ul>
+          {(user?.is_staff || user?.is_superuser) && <button className="refilter-btn" onClick={handleReFilter}>Re-filter</button>}
+        </div>
+      )}
 
       {/* Table */}
       <div className="table-wrapper">
@@ -185,15 +186,17 @@ function Filtered({ user }) {
           columns={columns}
           data={data}
           state={{ isLoading }}
-          enableGlobalFilter
-          enablePagination
-          initialState={{ pagination: { pageSize: 10 } }}
-          muiTableBodyRowProps={({ row }) => ({
-            sx: newlyAddedIds.has(row.original.consultation_id) ? { backgroundColor: '#e6ffe6' } : {},
-          })}
           enableColumnResizing
           enableColumnOrdering
-          enableColumnVisibilityToggle
+          enableDensityToggle
+          density="compact"
+          enableGlobalFilter
+          enablePagination
+          muiTableBodyRowProps={({ row }) => ({
+            sx: newlyAddedIds.has(row.original.consultation_id)
+              ? { backgroundColor: '#e6ffe6' }
+              : {},
+          })}
         />
       </div>
     </div>
