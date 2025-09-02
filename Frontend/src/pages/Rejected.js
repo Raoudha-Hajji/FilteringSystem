@@ -4,7 +4,7 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
 import { Menu } from "lucide-react";
-import "./TablePages.css";
+import "./Filtered.css";
 
 const Rejected = () => {
   const { user } = useUser();
