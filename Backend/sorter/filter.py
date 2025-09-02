@@ -177,7 +177,7 @@ def ensure_rejected_opp_table_exists(cursor):
         )
     """)
 
-def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  # Lowered from 0.6 to 0.4
+def filter_project(table_name, text_column="intitule_projet", threshold=0.6):
     load_classifier()
 
     if classifier is None:
@@ -225,47 +225,61 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  #
     selected_predictions, selected_confidences = [], []
     rejected_predictions, rejected_confidences = [], []
 
-    BORDERLINE_LOW = 0.3  # Lowered from 0.4 to 0.3
-    BORDERLINE_HIGH = 0.59
-
     for idx, text in enumerate(normalized_texts):
         try:
             embedding = embeddings[idx].reshape(1, -1)
             prediction = classifier.predict(embedding)[0]
-            confidence = classifier.predict_proba(embedding)[0][1]
+            confidence = float(classifier.predict_proba(embedding)[0][1])
 
-            logger.info(f"Processing row {idx + 1}/{len(normalized_texts)}: prediction = {prediction}, confidence = {confidence}")
             row = df.iloc[idx]
-
             keyword_match = any(k in text for k in normalized_keywords)
-            is_borderline = BORDERLINE_LOW <= confidence < BORDERLINE_HIGH
-            use_llm = confidence >= threshold or keyword_match or is_borderline
 
-            # More permissive logic: if keywords match or confidence is decent, give it a chance
-            if use_llm and (mistral_filter(text) or keyword_match or confidence > 0.5):
+            logger.info(f"Processing row {idx+1}/{len(normalized_texts)}: conf={confidence:.3f}, pred={prediction}, keywords={keyword_match}")
+
+            # === Stage 1: low-confidence quick rejection ===
+            if confidence < 0.3 and not keyword_match:
+                rejected_rows.append(row)
+                rejected_predictions.append(int(prediction))
+                rejected_confidences.append(confidence)
+                logger.info("❌ Rejected (low confidence, no keywords)")
+                continue
+
+            # === Stage 2: high-confidence direct selection ===
+            if confidence >= threshold:
                 selected_rows.append(row)
                 selected_predictions.append(int(prediction))
-                selected_confidences.append(float(confidence))
-                logger.info(f"✅ Row {idx + 1} selected (LLM: {mistral_filter(text)}, Keywords: {keyword_match}, Confidence: {confidence:.3f})")
+                selected_confidences.append(confidence)
+                logger.info("✅ Selected (high confidence)")
+                continue
+
+            # === Stage 3: borderline → use LLM ===
+            llm_result = mistral_filter(text)
+            logger.info(f"   LLM Result: {llm_result}")
+
+            if llm_result or keyword_match:
+                selected_rows.append(row)
+                selected_predictions.append(int(prediction))
+                selected_confidences.append(confidence)
+                logger.info("✅ Selected (borderline, kept by LLM/keywords)")
             else:
                 rejected_rows.append(row)
                 rejected_predictions.append(int(prediction))
-                rejected_confidences.append(float(confidence))
-                logger.info(f"❌ Row {idx + 1} rejected (LLM: {mistral_filter(text)}, Keywords: {keyword_match}, Confidence: {confidence:.3f})")
+                rejected_confidences.append(confidence)
+                logger.info("❌ Rejected (borderline, LLM rejected, no keywords)")
 
         except Exception as e:
-            logger.error(f"⚠️ Error processing row {idx + 1}: {e}")
-            # On error, be more permissive - check if it has IT-related keywords
+            logger.error(f"⚠️ Error processing row {idx+1}: {e}")
+            # Fallback on IT-related keywords
             if any(k in text.lower() for k in ["web", "software", "digital", "platform", "application", "system", "it", "information", "technology"]):
-                logger.info(f"✅ Row {idx + 1} selected due to IT keywords despite error")
                 selected_rows.append(row)
-                selected_predictions.append(1)  # Assume positive
-                selected_confidences.append(0.6)  # Assume decent confidence
+                selected_predictions.append(1)
+                selected_confidences.append(0.6)
+                logger.info("✅ Selected (error but IT keywords)")
             else:
-                logger.info(f"❌ Row {idx + 1} rejected due to error and no IT keywords")
                 rejected_rows.append(row)
-                rejected_predictions.append(0)  # Assume negative
-                rejected_confidences.append(0.3)  # Assume low confidence
+                rejected_predictions.append(0)
+                rejected_confidences.append(0.3)
+                logger.info("❌ Rejected (error and no IT keywords)")
             continue
 
     keep_columns = [
@@ -281,7 +295,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  #
     # === Save selected rows ===
     if selected_rows:
         ensure_filtered_opp_table_exists(cursor)
-        selected_df = pd.DataFrame(selected_rows)[keep_columns[:-1]]  # Exclude 'source' from initial selection
+        selected_df = pd.DataFrame(selected_rows)[keep_columns[:-1]]
         selected_df["prediction"] = selected_predictions
         selected_df["confidence"] = selected_confidences
         selected_df["source"] = table_name
@@ -302,11 +316,10 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  #
             )
         conn.commit()
 
-        # Ensure missing columns are filled with None
-        for col in keep_columns[:-1]:  # Exclude 'source' from this check
+        for col in keep_columns[:-1]:
             if col not in selected_df.columns:
                 selected_df[col] = None
-        selected_df = selected_df[keep_columns]  # Now include 'source'
+        selected_df = selected_df[keep_columns]
 
         selected_df.to_sql("filtered_opp", engine, if_exists="append", index=False)
         logger.info(f"✅ Saved {len(selected_df)} selected rows.")
@@ -314,7 +327,7 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  #
     # === Save rejected rows ===
     if rejected_rows:
         ensure_rejected_opp_table_exists(cursor)
-        rejected_df = pd.DataFrame(rejected_rows)[keep_columns[:-1]]  # Exclude 'source' from initial selection
+        rejected_df = pd.DataFrame(rejected_rows)[keep_columns[:-1]]
         rejected_df["prediction"] = rejected_predictions
         rejected_df["confidence"] = rejected_confidences
         rejected_df["source"] = table_name
@@ -335,11 +348,10 @@ def filter_project(table_name, text_column="intitule_projet", threshold=0.4):  #
             )
         conn.commit()
 
-        # Ensure missing columns are filled with None
-        for col in keep_columns[:-1]:  # Exclude 'source' from this check
+        for col in keep_columns[:-1]:
             if col not in rejected_df.columns:
                 rejected_df[col] = None
-        rejected_df = rejected_df[keep_columns]  # Now include 'source'
+        rejected_df = rejected_df[keep_columns]
 
         rejected_df.to_sql("rejected_opp", engine, if_exists="append", index=False)
         logger.info(f"❌ Saved {len(rejected_df)} rejected rows.")

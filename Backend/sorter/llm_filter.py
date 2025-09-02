@@ -12,36 +12,19 @@ def build_prompt(text):
     prompt = f"""
 You are an expert in classifying project descriptions for IT opportunities.
 
-Your task: Determine if this project is related to Information Technology, software development, or digital services.
+Task: Decide if this project is related to IT, software, or digital services.
 
-ACCEPT if the project involves ANY of these:
-- Web development, websites, web applications, web platforms
-- Software development, programming, coding, applications
-- Digital platforms, digital services, digitalization
-- IT services, information systems, digital tools
-- E-learning, online platforms, digital collaboration
-- Database systems, APIs, IT infrastructure
-- Mobile applications, digital applications
-- Digital transformation, digital modernization
-- IT consulting, digital consulting
-- Cloud services, digital platforms
-- Digital workspaces, virtual environments
-- IT integration, system integration
-- Digital communication tools, collaboration platforms
+ACCEPT if it involves software, web, mobile apps, digital platforms/services, IT systems, cloud, databases, APIs, e-learning, or digital transformation.
 
-REJECT ONLY if clearly about:
-- Physical construction (buildings, roads, bridges)
-- Hardware purchases (computers, printers, equipment)
-- Non-digital services (cleaning, maintenance, security)
-- Vehicles, machinery, physical devices
-- Agricultural, farming, or physical infrastructure
-- Traditional non-digital business services
+REJECT only if clearly about construction, hardware/equipment, vehicles, agriculture, or non-digital services.
 
-IMPORTANT: If the project mentions both digital/IT aspects AND physical elements, ACCEPT it as long as the digital/IT component is significant.
+If both digital/IT and physical elements are present, ACCEPT as long as IT is significant.
 
-Project description: {text}
+If uncertain, default to ACCEPT.
 
-Answer with only "yes" if IT-related, "no" if clearly non-IT:
+Project: {text}
+
+Answer strictly in lowercase with only one word: "yes" or "no".
 """
     return prompt
 
@@ -56,7 +39,7 @@ def mistral_filter(text):
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=60
+            timeout=300
         )
         response.raise_for_status()
         result = response.json()
