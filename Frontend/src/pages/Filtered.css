@@ -1,292 +1,126 @@
-.filtered-container {
-  font-family: 'Arial', sans-serif;
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  min-height: 80vh;
-  background-color: #f5f7fa;
+.table-wrapper {
   position: relative;
+  padding: 1rem;
 }
 
-/* Keywords Sidebar - Only over table section */
-.keywords-sidebar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 250px;
-  background-color: transparent;
-  z-index: 1000;
-  transition: transform 0.3s ease;
-  transform: translateX(-100%);
-}
-
-.keywords-sidebar:hover {
-  transform: translateX(0);
-}
-
-/* Only show the vertical Keywords tab by default */
-.keywords-sidebar::before {
-  content: 'Keywords';
-  position: absolute;
-  right: -60px;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  background-color: #0077cc;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px 8px 0 0;
-  font-weight: bold;
-  cursor: pointer;
-  white-space: nowrap;
-  z-index: 1001;
-}
-
-/* Keywords Panel */
-.keyword-section {
-  width: 100%;
-  background-color: rgba(255, 255, 255, 0.95);
-  padding: 1.5rem;
-  border-radius: 0 10px 10px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  height: 100%;
-  overflow-y: auto;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-/* Show keywords panel only on hover */
-.keywords-sidebar:hover .keyword-section {
-  opacity: 1;
-}
-
-.keyword-section h2 {
-  margin-bottom: 1rem;
-  color: #0077cc;
-  border-bottom: 2px solid #0077cc;
-  padding-bottom: 0.5rem;
-}
-
-.keyword-section input {
-  width: 100%;
-  padding: 0.6rem;
-  margin-bottom: 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-
-.keyword-section button {
-  padding: 0.5rem 1rem;
-  margin-top: 0.5rem;
-  border: none;
-  background-color: #0077cc;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-}
-
-.keyword-section button:hover {
-  background-color: #005fa3;
-}
-
-.keyword-section ul {
-  list-style: none;
-  padding-left: 0;
-  margin-top: 1rem;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.keyword-section li {
+.table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-size: 1.05rem;
-  color: #222;
-  padding: 0.5rem;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
-.keyword-section li button {
-  background: transparent;
-  border: none;
-  color: #ff3d3d;
-  font-size: 1.1rem;
-  cursor: pointer;
+.menu-button {
+  display: flex;
+  align-items: center;
 }
 
-.refilter-btn {
-  margin-top: 1rem;
-  background-color: #ff3d3d;
-  color: white;
-  padding: 0.6rem;
-  border: none;
-  border-radius: 6px;
-  width: 100%;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.refilter-btn:hover {
-  background-color: #cc3232;
-}
-
-/* Main Table Area - Properly centered on page */
-.main-table-area {
-  flex: 1;
-  margin-left: 40px; 
-  margin-right: 2rem; /* Right margin for balance */
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 1rem;
-  min-height: 80vh;
-  max-width: calc(100vw - 120px); /* Ensure table doesn't exceed viewport */
-}
-
-/* Material React Table Styles */
-.MuiTableContainer-root {
+.table-container {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
-  border-radius: 8px;
+  padding: 1rem;
 }
 
-.MuiTable-root {
-  width: 100%;
-  table-layout: auto;
+.scroll-x {
+  overflow-x: auto;
 }
 
-.MuiTableHead-root {
-  background-color: #0077cc;
-  color: white;
+.row-hover:hover {
+  background-color: #f0f7ff;
 }
 
-.MuiTableCell-head {
-  font-weight: 700;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.highlightFade {
+  background-color: #e6ffe6 !important;
+  animation: fadeHighlight 5s ease-out;
 }
 
-.MuiTableRow-root:hover {
-  background-color: #f0f7ff !important;
+@keyframes fadeHighlight {
+  from {
+    background-color: #e6ffe6;
+  }
+  to {
+    background-color: white;
+  }
 }
 
-/* Column specific styling */
-.MuiTableCell-root[data-column="intitule_projet"] {
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  max-width: none !important;
-  min-width: 300px !important;
-}
-
-.MuiTableCell-root[data-column="consultation_id"],
-.MuiTableCell-root[data-column="date_publication"],
-.MuiTableCell-root[data-column="date_expiration"] {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.MuiTableCell-root[data-column="lien"],
-.MuiTableCell-root[data-column="source"] {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.MuiTableCell-root[data-column="status"] button {
-  white-space: nowrap;
-  min-width: 60px;
-  font-size: 0.85rem;
-  padding: 6px 12px;
-}
-
-/* Notification Banner */
 .notification-banner {
-  background-color: #e0f7e9;
-  color: #256029;
-  padding: 1rem 1.5rem;
-  border-left: 6px solid #2e7d32;
+  background-color: #e6ffe6;
+  color: #1a7f1a;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
   font-weight: bold;
+}
+
+/* Drawer for keywords */
+.keywords-drawer {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 300px;
+  height: 100%;
+  background: #fafafa;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
+  transition: right 0.3s ease-in-out;
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.keywords-drawer.open {
+  right: 0;
+}
+
+.drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  position: relative;
-  z-index: 1001;
 }
 
-.notification-banner .close-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.2rem;
-  color: #256029;
-  cursor: pointer;
-}
-
-/* Styles for users without staff/admin rights */
-.keyword-section-normal {
-  background: #fafbfc;
-  border: 1.5px solid #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  padding: 2rem 1.5rem;
-  border-radius: 0 12px 12px 0;
-  min-width: 250px;
-  max-width: 250px;
-}
-
-.keyword-section-normal ul {
-  margin-top: 1.2rem;
-  padding-left: 1.2rem;
-  list-style: disc;
-}
-
-.keyword-section-normal li {
-  margin-bottom: 0.7rem;
-  font-size: 1.08rem;
-  color: #222;
-  background: none;
+.keyword-list {
+  list-style: none;
   padding: 0;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .keywords-sidebar {
-    width: 220px;
-  }
-  
-  .main-table-area {
-    margin-left: 70px;
-    margin-right: 1.5rem;
-  }
+.keyword-item {
+  display: flex;
+  justify-content: space-between;
+  background: #f0f0f0;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
 }
 
-@media (max-width: 768px) {
-  .filtered-container {
-    padding: 0.5rem;
-  }
-  
-  .keywords-sidebar {
-    width: 200px;
-  }
-  
-  .main-table-area {
-    margin-left: 60px;
-    margin-right: 1rem;
-    padding: 0.5rem;
-  }
-  
-  .keyword-section {
-    padding: 1rem;
-  }
+.keyword-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.keyword-input {
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.add-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.refilter-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.delete-btn {
+  color: red;
+  font-size: 0.9rem;
+}
+
+.close-button {
+  font-size: 1.2rem;
 }
