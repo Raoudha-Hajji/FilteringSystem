@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Filtered from './pages/Filtered.js';
 import Rejected from './pages/Rejected.js';
-import Visualization from './pages/visualization';
 import Login from './pages/Login';
 import AdminUserManagement from './pages/AdminUserManagement';
 import axios from 'axios';
@@ -118,7 +117,6 @@ function App() {
           <Route path="/" element={<WelcomeScreen />} />
           <Route path="/filtered" element={<Filtered user={user} />} />
           <Route path="/rejected" element={<Rejected user={user} />} />
-          <Route path="/visualization" element={<Visualization />} />
           <Route path="/admin-users" element={user.is_superuser ? <AdminUserManagement user={user} /> : <div style={{padding:32, color:'red'}}>You do not have permission to view this page.</div>} />
         </Routes>
       </main>
