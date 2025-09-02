@@ -1,50 +1,50 @@
-import React, { useEffect, useState } from "react";
-import MaterialReactTable from "material-react-table";
-import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { useUser } from "@/contexts/UserContext";
-import { Menu } from "lucide-react";
-import "./Filtered.css";
+import React, { useEffect, useState, useMemo } from 'react';
+import './Filtered.css';
+import axios from 'axios';
+import { MaterialReactTable } from 'material-react-table';
 
-const Filtered = () => {
-  const { user } = useUser();
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
+function Filtered({ user }) {
   const [data, setData] = useState([]);
+  const [prevCount, setPrevCount] = useState(0);
+  const [showNotification, setShowNotification] = useState(false);
   const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [showBanner, setShowBanner] = useState(false);
-  const [newRows, setNewRows] = useState([]);
+  const [newKeyword, setNewKeyword] = useState('');
+  const [seenIds, setSeenIds] = useState(new Set());
+  const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [isKeywordsOpen, setIsKeywordsOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    fetchKeywords();
-    fetchData();
-    const interval = setInterval(fetchData, 40 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const access = localStorage.getItem('access');
 
-  const fetchData = async () => {
+  const fetchFilteredData = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get("/sorter/api/filtered/");
+      const res = await axios.get(`${API_BASE}/sorter/api/filtered_data/`);
       const newData = res.data;
+      const newIdsSet = new Set(newData.map(row => row.consultation_id));
 
-      if (data.length > 0 && newData.length > data.length) {
-        const newIds = newData.map((row) => row.id);
-        const oldIds = data.map((row) => row.id);
-        const addedRows = newData.filter((row) => !oldIds.includes(row.id));
-
-        setNewRows(addedRows.map((row) => row.id));
-        setShowBanner(true);
-        setTimeout(() => {
-          setNewRows([]);
-          setShowBanner(false);
-        }, 5 * 60 * 1000);
+      if (isInitialLoad) {
+        setSeenIds(newIdsSet);
+        setIsInitialLoad(false);
+        setNewlyAddedIds(new Set());
+      } else {
+        const addedIds = new Set([...newIdsSet].filter(id => !seenIds.has(id)));
+        setNewlyAddedIds(addedIds);
+        setSeenIds(newIdsSet);
+        setTimeout(() => setNewlyAddedIds(new Set()), 300_000); // 5 minutes
       }
 
       setData(newData);
+      if (!isInitialLoad && newData.length > prevCount) {
+        setShowNotification(true);
+      }
+      setPrevCount(newData.length);
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error('Error fetching data:', err);
+      setData([]);
     } finally {
       setIsLoading(false);
     }
@@ -52,175 +52,152 @@ const Filtered = () => {
 
   const fetchKeywords = async () => {
     try {
-      const res = await axios.get("/sorter/api/keywords/");
+      const res = await axios.get(`${API_BASE}/sorter/api/keywords/`, {
+        headers: access ? { Authorization: `Bearer ${access}` } : {},
+      });
       setKeywords(res.data);
     } catch (err) {
-      console.error("Error fetching keywords:", err);
+      console.error('Error fetching keywords:', err);
+      setKeywords([]);
     }
   };
 
-  const addKeyword = async () => {
+  useEffect(() => {
+    fetchFilteredData();
+    fetchKeywords();
+    const interval = setInterval(fetchFilteredData, 40 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleFeedback = async (row, label) => {
+    try {
+      await axios.post(`${API_BASE}/sorter/api/feedback/`, {
+        consultation_id: row.consultation_id,
+        client: row.client,
+        intitule_projet: row.intitule_projet,
+        lien: row.lien,
+        Selection: label
+      }, {
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` },
+      });
+      alert(`Feedback sent as ${label === 1 ? 'Keep' : 'Reject'}`);
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+      alert("Failed to send feedback.");
+    }
+  };
+
+  const handleAddKeyword = async () => {
     if (!newKeyword.trim()) return;
-    try {
-      await axios.post("/sorter/api/keywords/", { word: newKeyword });
-      setNewKeyword("");
-      fetchKeywords();
-      fetchData();
-    } catch (err) {
-      console.error("Error adding keyword:", err);
-    }
+    if (!user || (!user.is_staff && !user.is_superuser)) return;
+    await axios.post(`${API_BASE}/sorter/api/keywords/`,
+      { keyword_fr: newKeyword },
+      { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access}` } }
+    );
+    setNewKeyword("");
+    fetchKeywords();
+    fetchFilteredData();
   };
 
-  const deleteKeyword = async (id) => {
-    try {
-      await axios.delete(`/sorter/api/keywords/${id}/`);
-      fetchKeywords();
-      fetchData();
-    } catch (err) {
-      console.error("Error deleting keyword:", err);
-    }
+  const handleDeleteKeyword = async (id) => {
+    if (!user || (!user.is_staff && !user.is_superuser)) return;
+    await axios.delete(`${API_BASE}/sorter/api/keywords/${id}/`, {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    fetchKeywords();
   };
 
-  const handleFeedback = async (id, status) => {
-    try {
-      await axios.post("/sorter/api/feedback/", { row_id: id, status });
-      fetchData();
-    } catch (err) {
-      console.error("Error sending feedback:", err);
-    }
+  const handleReFilter = async () => {
+    if (!user || (!user.is_staff && !user.is_superuser)) return;
+    await axios.post(`${API_BASE}/sorter/api/refilter/`, {}, {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    fetchFilteredData();
   };
 
-  const handleRefilter = async () => {
-    try {
-      await axios.post("/sorter/api/refilter/");
-      fetchData();
-    } catch (err) {
-      console.error("Error triggering refilter:", err);
-    }
-  };
-
-  const columns = [
-    { accessorKey: "consultation_id", header: "Consultation ID" },
-    { accessorKey: "date_publication", header: "Date Publication" },
-    { accessorKey: "client", header: "Client" },
-    { accessorKey: "intitule_projet", header: "Intitulé du projet", size: 300 },
-    { accessorKey: "date_expiration", header: "Date Expiration" },
-    {
-      accessorKey: "lien",
-      header: "Lien",
-      Cell: ({ cell }) => (
-        <a
-          href={cell.getValue()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 underline"
-        >
-          Ouvrir
-        </a>
-      ),
+  const columns = useMemo(() => [
+    { accessorKey: 'consultation_id', header: 'ID', enableColumnFilter: false, enableSorting: false },
+    { accessorKey: 'date_publication', header: 'Date Publication', enableColumnFilter: false, enableSorting: false },
+    { accessorKey: 'client', header: 'Client', enableColumnFilter: false, enableSorting: false },
+    { accessorKey: 'intitule_projet', header: 'Intitulé du projet', enableColumnFilter: false, enableSorting: false },
+    { accessorKey: 'date_expiration', header: 'Date Expiration', enableColumnFilter: false, enableSorting: false },
+    { accessorKey: 'lien', header: 'Lien',
+      Cell: ({ cell }) => <a href={cell.getValue()} target="_blank" rel="noopener noreferrer">Lien</a>,
+      enableColumnFilter: false, enableSorting: false
     },
-    { accessorKey: "source", header: "Source" },
-    {
-      accessorKey: "status",
-      header: "Status",
+    { accessorKey: 'source', header: 'Source', enableColumnFilter: false, enableSorting: false },
+    { id: 'status', header: 'Status', enableColumnFilter: false, enableSorting: false,
       Cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button
-            onClick={() => handleFeedback(row.original.id, "keep")}
-            className="bg-green-500 hover:bg-green-600 text-white"
-          >
-            Keep
-          </Button>
-          <Button
-            onClick={() => handleFeedback(row.original.id, "reject")}
-            className="bg-red-500 hover:bg-red-600 text-white"
-          >
-            Reject
-          </Button>
-        </div>
+        <>
+          <button onClick={() => handleFeedback(row.original, 1)} style={{ marginRight: '6px' }}>Keep</button>
+          <button onClick={() => handleFeedback(row.original, 0)}>Reject</button>
+        </>
       ),
     },
-  ];
+  ], []);
 
   return (
-    <div className="table-wrapper">
-      <div className="table-header">
-        <Button
-          variant="outline"
-          className="menu-button"
-          onClick={() => setIsKeywordsOpen(true)}
-        >
-          <Menu className="mr-2" /> Keywords
-        </Button>
-        {showBanner && (
-          <div className="notification-banner">
-            New filtered opportunities have been added!
-          </div>
-        )}
-      </div>
-
-      <div className="table-container scroll-x">
-        <MaterialReactTable
-          columns={columns}
-          data={data}
-          enablePagination
-          enableGlobalFilter
-          state={{ isLoading }}
-          muiTableBodyRowProps={({ row }) => ({
-            className: newRows.includes(row.original.id)
-              ? "highlightFade"
-              : "row-hover",
-          })}
-        />
-      </div>
-
-      {/* Slide-out keywords panel */}
-      <div className={`keywords-drawer ${isKeywordsOpen ? "open" : ""}`}>
-        <div className="drawer-header">
-          <h3>Keywords</h3>
-          <Button
-            variant="outline"
-            onClick={() => setIsKeywordsOpen(false)}
-            className="close-button"
-          >
-            ✕
-          </Button>
+    <div className="filtered-container">
+      {showNotification && (
+        <div className="notification-banner">
+          New filtered opportunities have been added!
+          <button className="close-btn" onClick={() => setShowNotification(false)}>❌</button>
         </div>
-        <ul className="keyword-list">
-          {keywords.map((kw) => (
-            <li key={kw.id} className="keyword-item">
-              {kw.word}
-              {user?.is_staff && (
-                <Button
-                  onClick={() => deleteKeyword(kw.id)}
-                  className="delete-btn"
-                >
-                  ❌
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-        {user?.is_staff && (
-          <div className="keyword-actions">
+      )}
+
+      {/* Keywords Drawer Toggle */}
+      <button className="keyword-toggle-btn" onClick={() => setDrawerOpen(!drawerOpen)}>
+        {drawerOpen ? 'Close Keywords' : 'Keywords'}
+      </button>
+
+      {/* Keywords Drawer */}
+      <div className={`keyword-drawer ${drawerOpen ? 'open' : ''}`}>
+        <h2>Keywords</h2>
+        {(user && (user.is_staff || user.is_superuser)) && (
+          <>
             <input
               type="text"
               value={newKeyword}
               onChange={(e) => setNewKeyword(e.target.value)}
-              className="keyword-input"
-              placeholder="Add keyword"
+              placeholder="New keyword"
             />
-            <Button onClick={addKeyword} className="add-btn">
-              Add
-            </Button>
-            <Button onClick={handleRefilter} className="refilter-btn">
-              Re-filter
-            </Button>
-          </div>
+            <button onClick={handleAddKeyword}>Add</button>
+          </>
         )}
+        <ul>
+          {keywords.map((kw) => (
+            <li key={kw.id}>
+              {kw.keyword_fr}
+              {(user && (user.is_staff || user.is_superuser)) && (
+                <button onClick={() => handleDeleteKeyword(kw.id)}>❌</button>
+              )}
+            </li>
+          ))}
+        </ul>
+        {(user && (user.is_staff || user.is_superuser)) && (
+          <button className="refilter-btn" onClick={handleReFilter}>Re-filter</button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="table-wrapper">
+        <MaterialReactTable
+          columns={columns}
+          data={data}
+          state={{ isLoading }}
+          enableGlobalFilter
+          enablePagination
+          initialState={{ pagination: { pageSize: 10 } }}
+          muiTableBodyRowProps={({ row }) => ({
+            sx: newlyAddedIds.has(row.original.consultation_id) ? { backgroundColor: '#e6ffe6' } : {},
+          })}
+          enableColumnResizing
+          enableColumnOrdering
+          enableColumnVisibilityToggle
+        />
       </div>
     </div>
   );
-};
+}
 
 export default Filtered;
