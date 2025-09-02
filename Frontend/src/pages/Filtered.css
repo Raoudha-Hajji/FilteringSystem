@@ -10,43 +10,49 @@
 
 .main-content {
   display: flex;
-  gap: 2rem; /* space between keywords and table */
+  gap: 1rem;
   width: 100%;
+  align-items: flex-start;
 }
 
 /* Keywords Panel */
 .keyword-section {
-  width: 25%;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
   background-color: rgba(255, 255, 255, 0.95); /* nearly opaque white */
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   max-height: 80vh;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .keyword-section h2 {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .keyword-section input {
   width: 100%;
-  padding: 0.6rem;
-  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .keyword-section button {
-  padding: 0.5rem 1rem;
-  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.4rem;
   border: none;
   background-color: #0077cc;
   color: white;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
   transition: background-color 0.3s ease;
 }
 
@@ -57,8 +63,8 @@
 .keyword-section ul {
   list-style: none;
   padding-left: 0;
-  margin-top: 1rem;
-  max-height: 50vh;
+  margin-top: 0.75rem;
+  max-height: 40vh;
   overflow-y: auto;
 }
 
@@ -66,8 +72,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
   color: #222;
 }
 
@@ -75,19 +81,21 @@
   background: transparent;
   border: none;
   color: #ff3d3d;
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
+  padding: 0.2rem;
 }
 
 .refilter-btn {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   background-color: #ff3d3d;
   color: white;
-  padding: 0.6rem;
+  padding: 0.5rem;
   border: none;
   border-radius: 6px;
   width: 100%;
   font-weight: bold;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -98,20 +106,56 @@
 
 /* Table Wrapper */
 .table-wrapper {
-  width: 75%;
+  flex: 1;
+  min-width: 0;
   background-color: white;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  overflow-x: auto;
-  /* Material React Table uses MUI styling, so we keep minimal here */
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Override some Material UI Table styles */
+/* Ensure table container has proper overflow handling */
+.table-wrapper > div {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Force MaterialReactTable to respect container */
+.table-wrapper > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Material React Table specific styles for better scrolling */
+.MuiTableContainer-root {
+  overflow: hidden !important;
+  max-width: 100%;
+  height: 100%;
+}
+
 .MuiTable-root {
-  font-size: 0.9rem;
-  color: #222;
+  width: 100%;
+  table-layout: auto;
 }
 
+/* Column sizing improvements */
+.MuiTableCell-root {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  max-width: 0;
+}
+
+/* Table header styling */
 .MuiTableHead-root {
   background-color: #0077cc;
   color: white;
@@ -120,6 +164,57 @@
 .MuiTableCell-head {
   font-weight: 700;
   color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  max-width: 0;
+}
+
+/* Allow some columns to wrap if needed */
+.MuiTableCell-root[data-column="intitule_projet"] {
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+/* Ensure buttons in status column don't wrap */
+.MuiTableCell-root[data-column="status"] button {
+  white-space: nowrap;
+  min-width: 50px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+
+/* Table row improvements */
+.MuiTableRow-root {
+  height: auto;
+}
+
+.MuiTableRow-root:hover {
+  background-color: #f0f7ff !important;
+}
+
+/* Ensure table fits container */
+.MuiTable-root {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+/* Make sure the table container doesn't overflow */
+.MuiTableContainer-root {
+  overflow: hidden !important;
+  max-width: 100%;
+  height: 100%;
+  width: 100%;
+}
+
+/* Override some Material UI Table styles */
+.MuiTable-root {
+  font-size: 0.9rem;
+  color: #222;
 }
 
 .MuiTableRow-root:hover {
@@ -186,20 +281,130 @@
   background: #fafbfc;
   border: 1.5px solid #e0e0e0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  padding: 2rem 1.5rem;
+  padding: 1rem;
   border-radius: 12px;
-  min-width: 220px;
-  max-width: 100%;
+  min-width: 200px;
+  max-width: 200px;
+  width: 200px;
+  flex-shrink: 0;
 }
 
 .keyword-section-normal ul {
-  margin-top: 1.2rem;
-  padding-left: 1.2rem;
-  list-style: disc;
+  margin-top: 0.75rem;
+  padding-left: 0;
+  list-style: none;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 
 .keyword-section-normal li {
-  margin-bottom: 0.7rem;
-  font-size: 1.08rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
   color: #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1200px) {
+  .main-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .keyword-section {
+    width: 100%;
+    max-width: none;
+    min-width: auto;
+  }
+  
+  .table-wrapper {
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtered-container {
+    padding: 0.5rem;
+  }
+  
+  .keyword-section {
+    padding: 0.75rem;
+  }
+  
+  .table-wrapper {
+    border-radius: 8px;
+    margin: 0;
+  }
+}
+
+/* Material React Table specific overrides */
+.MuiTableContainer-root {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.MuiTable-root {
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  min-width: auto !important;
+}
+
+/* Force table to fit container */
+.MuiTable-root,
+.MuiTableContainer-root,
+.MuiTableBody-root,
+.MuiTableHead-root {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Ensure all table cells respect container width */
+.MuiTableCell-root {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  padding: 6px 8px !important;
+  font-size: 0.85rem !important;
+  max-width: 0 !important;
+  width: auto !important;
+}
+
+/* Table header styling */
+.MuiTableHead-root {
+  background-color: #0077cc !important;
+  color: white !important;
+}
+
+.MuiTableCell-head {
+  font-weight: 700 !important;
+  color: white !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.9rem !important;
+  max-width: 0 !important;
+  width: auto !important;
+}
+
+/* Allow some columns to wrap if needed */
+.MuiTableCell-root[data-column="intitule_projet"] {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  min-width: 150px !important;
+  max-width: 200px !important;
+}
+
+/* Ensure buttons in status column don't wrap */
+.MuiTableCell-root[data-column="status"] button {
+  white-space: nowrap !important;
+  min-width: 50px !important;
+  font-size: 0.8rem !important;
+  padding: 4px 8px !important;
 }
